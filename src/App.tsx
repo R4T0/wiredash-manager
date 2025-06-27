@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import Generate from "./pages/Generate";
 import Peers from "./pages/Peers";
+import Interfaces from "./pages/Interfaces";
 import Settings from "./pages/Settings";
 import NotFound from "./pages/NotFound";
 
@@ -22,7 +23,7 @@ const App = () => (
           <Route path="/" element={<Dashboard />} />
           <Route path="/generate" element={<Generate />} />
           <Route path="/peers" element={<Peers />} />
-          <Route path="/interfaces" element={<Dashboard />} />
+          <Route path="/interfaces" element={<Interfaces />} />
           <Route path="/qrcode" element={<Generate />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="*" element={<NotFound />} />
