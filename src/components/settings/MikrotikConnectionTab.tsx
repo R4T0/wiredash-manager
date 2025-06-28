@@ -3,7 +3,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Save, Router, Shield, Network, Menu, X } from 'lucide-react';
+import { Save, Router, Shield, Network, Menu, X, Wifi } from 'lucide-react';
+import { useToast } from '@/hooks/use-toast';
 
 const MikrotikConnectionTab = () => {
   const [formData, setFormData] = useState({
@@ -15,6 +16,8 @@ const MikrotikConnectionTab = () => {
   });
   const [selectedRouter, setSelectedRouter] = useState('mikrotik');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const { toast } = useToast();
 
   // Carregar dados salvos do localStorage quando o componente é montado
   useEffect(() => {
@@ -74,6 +77,74 @@ const MikrotikConnectionTab = () => {
     }));
   };
 
+  const handleTestConnection = async () => {
+    if (!formData.endpoint || !formData.user || !formData.password) {
+      toast({
+        title: "Campos obrigatórios",
+        description: "Preencha o endereço, usuário e senha antes de testar a conexão.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    if (selectedRouter !== 'mikrotik') {
+      toast({
+        title: "Teste não disponível",
+        description: "O teste de conexão está disponível apenas para roteadores Mikrotik.",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    setIsTestingConnection(true);
+    console.log('Testing connection to Mikrotik router...');
+
+    try {
+      const protocol = formData.useHttps ? 'https' : 'http';
+      const port = formData.port ? `:${formData.port}` : '';
+      const url = `${protocol}://${formData.endpoint}${port}/rest/system/resource`;
+      
+      // Criar credenciais Basic Auth
+      const credentials = btoa(`${formData.user}:${formData.password}`);
+      
+      console.log(`Making request to: ${url}`);
+      
+      const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${credentials}`,
+          'Content-Type': 'application/json'
+        },
+        // Adicionar timeout de 10 segundos
+        signal: AbortSignal.timeout(10000)
+      });
+
+      console.log('Response status:', response.status);
+
+      if (response.status === 200) {
+        toast({
+          title: "✅ Conexão bem-sucedida!",
+          description: "A conexão com o roteador Mikrotik foi estabelecida com sucesso.",
+        });
+      } else {
+        toast({
+          title: "❌ Falha na conexão",
+          description: `Erro ${response.status}: Verifique as credenciais e configurações.`,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Connection test failed:', error);
+      toast({
+        title: "❌ Erro de conexão",
+        description: "Não foi possível conectar ao roteador. Verifique o endereço e configurações de rede.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsTestingConnection(false);
+    }
+  };
+
   const handleSave = () => {
     console.log('Saving router configuration:', {
       routerType: selectedRouter,
@@ -87,10 +158,17 @@ const MikrotikConnectionTab = () => {
       };
       localStorage.setItem('routerConfig', JSON.stringify(configToSave));
       console.log('Configuration saved successfully to localStorage');
-      alert('Configurações salvas com sucesso!');
+      toast({
+        title: "✅ Configurações salvas",
+        description: "As configurações foram salvas com sucesso!",
+      });
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);
-      alert('Erro ao salvar configurações!');
+      toast({
+        title: "❌ Erro ao salvar",
+        description: "Ocorreu um erro ao salvar as configurações.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -221,7 +299,16 @@ const MikrotikConnectionTab = () => {
         </Label>
       </div>
 
-      <div className="flex justify-end pt-4">
+      <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
+        <Button
+          onClick={handleTestConnection}
+          disabled={isTestingConnection}
+          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8 shadow-md shadow-blue-500/15"
+        >
+          <Wifi className="w-4 h-4 mr-2" />
+          {isTestingConnection ? 'Testando...' : 'Testar Conexão'}
+        </Button>
+        
         <Button
           onClick={handleSave}
           className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 shadow-md shadow-green-500/15"
