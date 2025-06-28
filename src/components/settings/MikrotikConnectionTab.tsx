@@ -89,24 +89,16 @@ const MikrotikConnectionTab = () => {
       return;
     }
 
-    if (selectedRouter !== 'mikrotik') {
-      toast({
-        title: "Teste não disponível",
-        description: "O teste de conexão está disponível apenas para roteadores Mikrotik.",
-        variant: "destructive"
-      });
-      return;
-    }
-
     setIsTestingConnection(true);
-    console.log('Testing connection via backend proxy...');
+    console.log(`Testing connection with ${selectedRouter} router via backend proxy...`);
 
     const startTime = Date.now();
     
-    // Usar o backend proxy ao invés de requisição direta
-    const proxyUrl = 'http://localhost:5000/api/mikrotik/test-connection';
+    // Usar o endpoint genérico de teste de conexão
+    const proxyUrl = 'http://localhost:5000/api/router/test-connection';
     
     const requestBody = {
+      routerType: selectedRouter, // Usar o tipo de roteador selecionado
       endpoint: formData.endpoint,
       port: formData.port,
       user: formData.user,
@@ -115,7 +107,7 @@ const MikrotikConnectionTab = () => {
     };
 
     try {
-      console.log('Making request to backend proxy...');
+      console.log(`Making request to backend proxy for ${selectedRouter}...`, requestBody);
       
       const response = await fetch(proxyUrl, {
         method: 'POST',
@@ -143,9 +135,10 @@ const MikrotikConnectionTab = () => {
       });
 
       if (responseData.success && responseData.status === 200) {
+        const routerName = routerTypes.find(r => r.id === selectedRouter)?.name || selectedRouter;
         toast({
           title: "✅ Conexão bem-sucedida!",
-          description: `A conexão ${formData.useHttps ? 'HTTPS' : 'HTTP'} com o roteador Mikrotik foi estabelecida com sucesso via proxy.`,
+          description: `A conexão ${formData.useHttps ? 'HTTPS' : 'HTTP'} com o roteador ${routerName} foi estabelecida com sucesso via proxy.`,
         });
       } else {
         toast({
