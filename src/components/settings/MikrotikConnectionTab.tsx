@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -16,6 +15,29 @@ const MikrotikConnectionTab = () => {
   });
   const [selectedRouter, setSelectedRouter] = useState('mikrotik');
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Carregar dados salvos do localStorage quando o componente é montado
+  useEffect(() => {
+    try {
+      const savedConfig = localStorage.getItem('routerConfig');
+      if (savedConfig) {
+        const config = JSON.parse(savedConfig);
+        console.log('Loading saved router configuration:', config);
+        setFormData({
+          endpoint: config.endpoint || '',
+          port: config.port || '',
+          user: config.user || '',
+          password: config.password || '',
+          useHttps: config.useHttps || false
+        });
+        if (config.routerType) {
+          setSelectedRouter(config.routerType);
+        }
+      }
+    } catch (error) {
+      console.error('Erro ao carregar configurações salvas:', error);
+    }
+  }, []);
 
   const routerTypes = [
     {
@@ -59,10 +81,12 @@ const MikrotikConnectionTab = () => {
     });
     
     try {
-      localStorage.setItem('routerConfig', JSON.stringify({
+      const configToSave = {
         routerType: selectedRouter,
         ...formData
-      }));
+      };
+      localStorage.setItem('routerConfig', JSON.stringify(configToSave));
+      console.log('Configuration saved successfully to localStorage');
       alert('Configurações salvas com sucesso!');
     } catch (error) {
       console.error('Erro ao salvar configurações:', error);

@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,25 @@ const WireGuardTab = () => {
     rangeIpsPermitidos: '',
     dnsCliente: ''
   });
+
+  // Carregar dados salvos do localStorage quando o componente é montado
+  useEffect(() => {
+    try {
+      const savedConfig = localStorage.getItem('wireguardConfig');
+      if (savedConfig) {
+        const config = JSON.parse(savedConfig);
+        console.log('Loading saved WireGuard configuration:', config);
+        setWireguardConfig({
+          endpointPadrao: config.endpointPadrao || '',
+          portaPadrao: config.portaPadrao || '',
+          rangeIpsPermitidos: config.rangeIpsPermitidos || '',
+          dnsCliente: config.dnsCliente || ''
+        });
+      }
+    } catch (error) {
+      console.error('Erro ao carregar configurações WireGuard salvas:', error);
+    }
+  }, []);
 
   const handleWireguardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -27,6 +46,7 @@ const WireGuardTab = () => {
     
     try {
       localStorage.setItem('wireguardConfig', JSON.stringify(wireguardConfig));
+      console.log('WireGuard configuration saved successfully to localStorage');
       alert('Configurações WireGuard salvas com sucesso!');
     } catch (error) {
       console.error('Erro ao salvar configurações WireGuard:', error);
