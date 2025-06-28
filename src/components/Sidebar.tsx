@@ -62,8 +62,8 @@ const Sidebar = () => {
               className={({ isActive }) =>
                 `flex items-center px-4 py-3 text-sm font-medium rounded-xl transition-all duration-200 ${
                   isActive
-                    ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/25'
-                    : 'text-gray-300 hover:text-white hover:bg-gray-800/50'
+                    ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-md shadow-green-500/15'
+                    : 'text-gray-300 hover:text-white hover:bg-green-500/10'
                 }`
               }
             >
