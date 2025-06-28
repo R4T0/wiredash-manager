@@ -1,10 +1,10 @@
-
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Router, Shield, Users, FileText, Activity } from 'lucide-react';
 import MikrotikConnectionTab from './settings/MikrotikConnectionTab';
 import WireGuardTab from './settings/WireGuardTab';
+import UsersTab from './settings/UsersTab';
 import PlaceholderTab from './settings/PlaceholderTab';
 
 const SettingsForm = () => {
@@ -69,18 +69,14 @@ const SettingsForm = () => {
           </TabsContent>
 
           <TabsContent value="usuarios">
-            <PlaceholderTab 
-              icon={Users}
-              title="Gerenciamento de Usuários"
-              description="Configurar usuários e permissões do sistema"
-            />
+            <UsersTab />
           </TabsContent>
 
           <TabsContent value="logs">
             <PlaceholderTab 
               icon={FileText}
               title="Logs do Sistema"
-              description="Visualizar e gerenciar logs de atividades"
+              description="Visualizar e gerenciar logs de atividades do sistema"
             />
           </TabsContent>
 
@@ -88,7 +84,7 @@ const SettingsForm = () => {
             <PlaceholderTab 
               icon={Activity}
               title="Diagnóstico"
-              description="Ferramentas de diagnóstico e teste de conectividade"
+              description="Ferramentas de diagnóstico e teste de conectividade do sistema"
             />
           </TabsContent>
         </Tabs>

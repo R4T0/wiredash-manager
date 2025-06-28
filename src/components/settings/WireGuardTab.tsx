@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -42,9 +41,10 @@ const WireGuardTab = () => {
             id="endpointPadrao"
             name="endpointPadrao"
             type="text"
+            placeholder="Ex: vpn.minhaempresa.com"
             value={wireguardConfig.endpointPadrao}
             onChange={handleWireguardChange}
-            className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
+            className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-green-500"
           />
         </div>
 
@@ -56,9 +56,10 @@ const WireGuardTab = () => {
             id="portaPadrao"
             name="portaPadrao"
             type="text"
+            placeholder="Ex: 51820"
             value={wireguardConfig.portaPadrao}
             onChange={handleWireguardChange}
-            className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
+            className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-green-500"
           />
         </div>
       </div>
@@ -72,9 +73,10 @@ const WireGuardTab = () => {
             id="rangeIpsPermitidos"
             name="rangeIpsPermitidos"
             type="text"
+            placeholder="Ex: 10.0.0.0/24"
             value={wireguardConfig.rangeIpsPermitidos}
             onChange={handleWireguardChange}
-            className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
+            className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-green-500"
           />
         </div>
 
@@ -86,9 +88,10 @@ const WireGuardTab = () => {
             id="dnsCliente"
             name="dnsCliente"
             type="text"
+            placeholder="Ex: 1.1.1.1, 8.8.8.8"
             value={wireguardConfig.dnsCliente}
             onChange={handleWireguardChange}
-            className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
+            className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-green-500"
           />
         </div>
       </div>
