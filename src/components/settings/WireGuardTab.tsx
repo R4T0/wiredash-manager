@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -95,7 +96,7 @@ const WireGuardTab = () => {
       <div className="flex justify-end pt-4">
         <Button
           onClick={handleWireguardSave}
-          className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 shadow-lg shadow-green-500/25"
+          className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white px-8 shadow-md shadow-green-500/15"
         >
           <Save className="w-4 h-4 mr-2" />
           Salvar Configurações Padrão
