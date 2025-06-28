@@ -28,7 +28,7 @@ const SettingsForm = () => {
               className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 data-[state=active]:border-green-500/30 data-[state=active]:shadow-md data-[state=active]:shadow-green-500/15 hover:bg-green-500/10"
             >
               <Router className="w-4 h-4 mr-2" />
-              Conexão Mikrotik
+              Conecte Router
             </TabsTrigger>
             <TabsTrigger 
               value="wireguard"
