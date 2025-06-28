@@ -25,35 +25,35 @@ const SettingsForm = () => {
           <TabsList className="grid w-full grid-cols-5 bg-gray-700/50 border-gray-600">
             <TabsTrigger 
               value="mikrotik" 
-              className="data-[state=active]:bg-blue-600/20 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30"
+              className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 data-[state=active]:border-green-500/30 data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/25 hover:bg-green-500/10"
             >
               <Router className="w-4 h-4 mr-2" />
               Conexão Mikrotik
             </TabsTrigger>
             <TabsTrigger 
               value="wireguard"
-              className="data-[state=active]:bg-blue-600/20 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30"
+              className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 data-[state=active]:border-green-500/30 data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/25 hover:bg-green-500/10"
             >
               <Shield className="w-4 h-4 mr-2" />
               WireGuard
             </TabsTrigger>
             <TabsTrigger 
               value="usuarios"
-              className="data-[state=active]:bg-blue-600/20 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30"
+              className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 data-[state=active]:border-green-500/30 data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/25 hover:bg-green-500/10"
             >
               <Users className="w-4 h-4 mr-2" />
               Usuários
             </TabsTrigger>
             <TabsTrigger 
               value="logs"
-              className="data-[state=active]:bg-blue-600/20 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30"
+              className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 data-[state=active]:border-green-500/30 data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/25 hover:bg-green-500/10"
             >
               <FileText className="w-4 h-4 mr-2" />
               Logs
             </TabsTrigger>
             <TabsTrigger 
               value="diagnostico"
-              className="data-[state=active]:bg-blue-600/20 data-[state=active]:text-blue-400 data-[state=active]:border-blue-500/30"
+              className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 data-[state=active]:border-green-500/30 data-[state=active]:shadow-lg data-[state=active]:shadow-green-500/25 hover:bg-green-500/10"
             >
               <Activity className="w-4 h-4 mr-2" />
               Diagnóstico
