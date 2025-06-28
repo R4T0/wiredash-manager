@@ -7,10 +7,10 @@ import { Save } from 'lucide-react';
 
 const WireGuardTab = () => {
   const [wireguardConfig, setWireguardConfig] = useState({
-    endpointPadrao: 'vpn.example.com',
-    portaPadrao: '51820',
-    rangeIpsPermitidos: '10.0.0.0/24',
-    dnsCliente: '1.1.1.1'
+    endpointPadrao: '',
+    portaPadrao: '',
+    rangeIpsPermitidos: '',
+    dnsCliente: ''
   });
 
   const handleWireguardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -26,7 +26,6 @@ const WireGuardTab = () => {
     console.log('Saving WireGuard configuration:', wireguardConfig);
     
     try {
-      // Salvar no localStorage como exemplo
       localStorage.setItem('wireguardConfig', JSON.stringify(wireguardConfig));
       alert('Configurações WireGuard salvas com sucesso!');
     } catch (error) {
@@ -51,7 +50,7 @@ const WireGuardTab = () => {
             id="endpointPadrao"
             name="endpointPadrao"
             type="text"
-            placeholder="vpn.minhaempresa.com"
+            placeholder="Ex: vpn.minhaempresa.com"
             value={wireguardConfig.endpointPadrao}
             onChange={handleWireguardChange}
             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-green-500"
@@ -66,7 +65,7 @@ const WireGuardTab = () => {
             id="portaPadrao"
             name="portaPadrao"
             type="text"
-            placeholder="51820"
+            placeholder="Ex: 51820"
             value={wireguardConfig.portaPadrao}
             onChange={handleWireguardChange}
             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-green-500"
@@ -83,7 +82,7 @@ const WireGuardTab = () => {
             id="rangeIpsPermitidos"
             name="rangeIpsPermitidos"
             type="text"
-            placeholder="10.0.0.0/24"
+            placeholder="Ex: 10.0.0.0/24"
             value={wireguardConfig.rangeIpsPermitidos}
             onChange={handleWireguardChange}
             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-green-500"
@@ -98,7 +97,7 @@ const WireGuardTab = () => {
             id="dnsCliente"
             name="dnsCliente"
             type="text"
-            placeholder="1.1.1.1, 8.8.8.8"
+            placeholder="Ex: 1.1.1.1, 8.8.8.8"
             value={wireguardConfig.dnsCliente}
             onChange={handleWireguardChange}
             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-green-500"

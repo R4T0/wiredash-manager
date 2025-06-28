@@ -8,9 +8,9 @@ import { Save, Router, Shield, Network, Menu, X } from 'lucide-react';
 
 const MikrotikConnectionTab = () => {
   const [formData, setFormData] = useState({
-    endpoint: '189.17.83.228',
-    port: '80',
-    user: 'admin',
+    endpoint: '',
+    port: '',
+    user: '',
     password: '',
     useHttps: false
   });
@@ -58,9 +58,7 @@ const MikrotikConnectionTab = () => {
       ...formData
     });
     
-    // Simular salvamento
     try {
-      // Aqui você faria a chamada para API para salvar
       localStorage.setItem('routerConfig', JSON.stringify({
         routerType: selectedRouter,
         ...formData
