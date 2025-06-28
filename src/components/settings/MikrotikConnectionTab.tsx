@@ -5,6 +5,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Save, Router, Shield, Network, Menu, X, Wifi } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { useApiLogsContext } from '@/contexts/ApiLogsContext';
 
 const MikrotikConnectionTab = () => {
   const [formData, setFormData] = useState({
@@ -18,6 +19,7 @@ const MikrotikConnectionTab = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [isTestingConnection, setIsTestingConnection] = useState(false);
   const { toast } = useToast();
+  const { addLog } = useApiLogsContext();
 
   // Carregar dados salvos do localStorage quando o componente é montado
   useEffect(() => {
@@ -99,27 +101,43 @@ const MikrotikConnectionTab = () => {
     setIsTestingConnection(true);
     console.log('Testing connection to Mikrotik router...');
 
+    const startTime = Date.now();
+    const protocol = formData.useHttps ? 'https' : 'http';
+    const port = formData.port ? `:${formData.port}` : '';
+    const url = `${protocol}://${formData.endpoint}${port}/rest/system/resource`;
+    
+    // Criar credenciais Basic Auth
+    const credentials = btoa(`${formData.user}:${formData.password}`);
+    
+    const requestHeaders = {
+      'Authorization': `Basic ${credentials}`,
+      'Content-Type': 'application/json'
+    };
+
     try {
-      const protocol = formData.useHttps ? 'https' : 'http';
-      const port = formData.port ? `:${formData.port}` : '';
-      const url = `${protocol}://${formData.endpoint}${port}/rest/system/resource`;
-      
-      // Criar credenciais Basic Auth
-      const credentials = btoa(`${formData.user}:${formData.password}`);
-      
       console.log(`Making request to: ${url}`);
       
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Authorization': `Basic ${credentials}`,
-          'Content-Type': 'application/json'
-        },
-        // Adicionar timeout de 10 segundos
+        headers: requestHeaders,
         signal: AbortSignal.timeout(10000)
       });
 
+      const duration = Date.now() - startTime;
+      const responseText = await response.text();
+      
       console.log('Response status:', response.status);
+
+      // Registrar log da requisição
+      addLog({
+        method: 'GET',
+        url,
+        status: response.status,
+        requestHeaders,
+        responseHeaders: Object.fromEntries(response.headers.entries()),
+        responseBody: responseText,
+        duration
+      });
 
       if (response.status === 200) {
         toast({
@@ -134,7 +152,20 @@ const MikrotikConnectionTab = () => {
         });
       }
     } catch (error) {
+      const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      
       console.error('Connection test failed:', error);
+      
+      // Registrar log do erro
+      addLog({
+        method: 'GET',
+        url,
+        requestHeaders,
+        error: errorMessage,
+        duration
+      });
+
       toast({
         title: "❌ Erro de conexão",
         description: "Não foi possível conectar ao roteador. Verifique o endereço e configurações de rede.",

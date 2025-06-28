@@ -5,6 +5,7 @@ import { Settings, Router, Shield, Users, FileText, Activity } from 'lucide-reac
 import MikrotikConnectionTab from './settings/MikrotikConnectionTab';
 import WireGuardTab from './settings/WireGuardTab';
 import UsersTab from './settings/UsersTab';
+import DiagnosticTab from './settings/DiagnosticTab';
 import PlaceholderTab from './settings/PlaceholderTab';
 
 const SettingsForm = () => {
@@ -81,11 +82,7 @@ const SettingsForm = () => {
           </TabsContent>
 
           <TabsContent value="diagnostico">
-            <PlaceholderTab 
-              icon={Activity}
-              title="Diagnóstico"
-              description="Ferramentas de diagnóstico e teste de conectividade do sistema"
-            />
+            <DiagnosticTab />
           </TabsContent>
         </Tabs>
       </Card>
