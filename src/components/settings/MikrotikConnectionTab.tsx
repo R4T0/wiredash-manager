@@ -99,58 +99,58 @@ const MikrotikConnectionTab = () => {
     }
 
     setIsTestingConnection(true);
-    console.log('Testing connection to Mikrotik router...');
+    console.log('Testing connection via backend proxy...');
 
     const startTime = Date.now();
-    const protocol = formData.useHttps ? 'https' : 'http';
-    const port = formData.port ? `:${formData.port}` : '';
-    const url = `${protocol}://${formData.endpoint}${port}/rest/system/resource`;
     
-    console.log(`Using protocol: ${protocol}`);
-    console.log(`Full URL: ${url}`);
+    // Usar o backend proxy ao invés de requisição direta
+    const proxyUrl = 'http://localhost:5000/api/mikrotik/test-connection';
     
-    // Criar credenciais Basic Auth
-    const credentials = btoa(`${formData.user}:${formData.password}`);
-    
-    const requestHeaders = {
-      'Authorization': `Basic ${credentials}`,
-      'Content-Type': 'application/json'
+    const requestBody = {
+      endpoint: formData.endpoint,
+      port: formData.port,
+      user: formData.user,
+      password: formData.password,
+      useHttps: formData.useHttps
     };
 
     try {
-      console.log(`Making ${formData.useHttps ? 'HTTPS' : 'HTTP'} request to: ${url}`);
+      console.log('Making request to backend proxy...');
       
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: requestHeaders,
-        signal: AbortSignal.timeout(10000)
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(15000) // 15 segundos para dar tempo ao proxy
       });
 
       const duration = Date.now() - startTime;
-      const responseText = await response.text();
+      const responseData = await response.json();
       
-      console.log('Response status:', response.status);
+      console.log('Backend proxy response:', responseData);
 
       // Registrar log da requisição
       addLog({
-        method: 'GET',
-        url,
+        method: 'POST',
+        url: proxyUrl,
         status: response.status,
-        requestHeaders,
+        requestHeaders: { 'Content-Type': 'application/json' },
         responseHeaders: Object.fromEntries(response.headers.entries()),
-        responseBody: responseText,
+        responseBody: JSON.stringify(responseData),
         duration
       });
 
-      if (response.status === 200) {
+      if (responseData.success && responseData.status === 200) {
         toast({
           title: "✅ Conexão bem-sucedida!",
-          description: `A conexão ${formData.useHttps ? 'HTTPS' : 'HTTP'} com o roteador Mikrotik foi estabelecida com sucesso.`,
+          description: `A conexão ${formData.useHttps ? 'HTTPS' : 'HTTP'} com o roteador Mikrotik foi estabelecida com sucesso via proxy.`,
         });
       } else {
         toast({
           title: "❌ Falha na conexão",
-          description: `Erro ${response.status}: Verifique as credenciais e configurações.`,
+          description: responseData.error || `Erro ${responseData.status}: Verifique as credenciais e configurações.`,
           variant: "destructive"
         });
       }
@@ -158,20 +158,20 @@ const MikrotikConnectionTab = () => {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       
-      console.error('Connection test failed:', error);
+      console.error('Backend proxy request failed:', error);
       
       // Registrar log do erro
       addLog({
-        method: 'GET',
-        url,
-        requestHeaders,
+        method: 'POST',
+        url: proxyUrl,
+        requestHeaders: { 'Content-Type': 'application/json' },
         error: errorMessage,
         duration
       });
 
       toast({
         title: "❌ Erro de conexão",
-        description: `Não foi possível conectar ao roteador via ${formData.useHttps ? 'HTTPS' : 'HTTP'}. Verifique o endereço e configurações de rede.`,
+        description: `Não foi possível conectar ao backend proxy. Verifique se o serviço está executando em localhost:5000.`,
         variant: "destructive"
       });
     } finally {
