@@ -1,11 +1,12 @@
 
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import requests
-import base64
 import json
 from datetime import datetime
 import logging
+from routers.mikrotik import MikrotikRouter
+from routers.opnsense import OPNsenseRouter
+from routers.unifi import UnifiRouter
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -14,20 +15,28 @@ logger = logging.getLogger(__name__)
 app = Flask(__name__)
 CORS(app)  # Permitir CORS para todas as rotas
 
+# Mapeamento dos tipos de roteadores
+ROUTER_CLASSES = {
+    'mikrotik': MikrotikRouter,
+    'opnsense': OPNsenseRouter,
+    'unifi': UnifiRouter
+}
+
 @app.route('/health', methods=['GET'])
 def health_check():
     """Endpoint para verificar se o serviço está funcionando"""
     return jsonify({
         'status': 'ok',
         'timestamp': datetime.now().isoformat(),
-        'service': 'Mikrotik API Proxy'
+        'service': 'Multi-Router API Proxy',
+        'supported_routers': list(ROUTER_CLASSES.keys())
     })
 
-@app.route('/api/mikrotik/proxy', methods=['POST'])
-def mikrotik_proxy():
+@app.route('/api/router/proxy', methods=['POST'])
+def router_proxy():
     """
-    Proxy para requisições da API REST do Mikrotik
-    Espera um JSON com: endpoint, port, user, password, useHttps, path
+    Proxy genérico para requisições de API de diferentes roteadores
+    Espera um JSON com: routerType, endpoint, port, user, password, useHttps, path
     """
     try:
         # Validar se é uma requisição JSON
@@ -37,95 +46,38 @@ def mikrotik_proxy():
         data = request.get_json()
         
         # Validar campos obrigatórios
-        required_fields = ['endpoint', 'user', 'password', 'path']
+        required_fields = ['routerType', 'endpoint', 'user', 'password', 'path']
         for field in required_fields:
             if field not in data or not data[field]:
                 return jsonify({'error': f'Campo obrigatório ausente: {field}'}), 400
         
-        # Extrair dados da requisição
-        endpoint = data['endpoint']
-        port = data.get('port', '')
-        user = data['user']
-        password = data['password']
-        use_https = data.get('useHttps', False)
-        api_path = data['path']
-        method = data.get('method', 'GET')
-        request_body = data.get('body')
+        router_type = data['routerType'].lower()
         
-        # Construir URL
-        protocol = 'https' if use_https else 'http'
-        port_suffix = f':{port}' if port else ''
-        url = f'{protocol}://{endpoint}{port_suffix}{api_path}'
+        # Verificar se o tipo de roteador é suportado
+        if router_type not in ROUTER_CLASSES:
+            return jsonify({
+                'error': f'Tipo de roteador não suportado: {router_type}',
+                'supported_types': list(ROUTER_CLASSES.keys())
+            }), 400
         
-        logger.info(f'Fazendo requisição {method} para: {url}')
+        # Instanciar a classe específica do roteador
+        router_class = ROUTER_CLASSES[router_type]
+        router = router_class(
+            endpoint=data['endpoint'],
+            port=data.get('port', ''),
+            user=data['user'],
+            password=data['password'],
+            use_https=data.get('useHttps', False)
+        )
         
-        # Preparar credenciais Basic Auth
-        credentials = base64.b64encode(f'{user}:{password}'.encode()).decode()
+        # Fazer a requisição através da classe específica
+        result = router.make_request(
+            path=data['path'],
+            method=data.get('method', 'GET'),
+            body=data.get('body')
+        )
         
-        # Headers da requisição
-        headers = {
-            'Authorization': f'Basic {credentials}',
-            'Content-Type': 'application/json'
-        }
-        
-        # Fazer a requisição para o Mikrotik
-        start_time = datetime.now()
-        
-        if method.upper() == 'GET':
-            response = requests.get(url, headers=headers, timeout=10, verify=False)
-        elif method.upper() == 'POST':
-            response = requests.post(url, headers=headers, json=request_body, timeout=10, verify=False)
-        elif method.upper() == 'PUT':
-            response = requests.put(url, headers=headers, json=request_body, timeout=10, verify=False)
-        elif method.upper() == 'DELETE':
-            response = requests.delete(url, headers=headers, timeout=10, verify=False)
-        else:
-            return jsonify({'error': f'Método HTTP não suportado: {method}'}), 400
-        
-        end_time = datetime.now()
-        duration = (end_time - start_time).total_seconds() * 1000
-        
-        logger.info(f'Resposta recebida - Status: {response.status_code}, Tempo: {duration:.2f}ms')
-        
-        # Preparar resposta
-        try:
-            response_data = response.json() if response.content else {}
-        except json.JSONDecodeError:
-            response_data = {'raw_response': response.text}
-        
-        return jsonify({
-            'success': True,
-            'status': response.status_code,
-            'data': response_data,
-            'headers': dict(response.headers),
-            'duration_ms': round(duration, 2),
-            'url': url,
-            'method': method.upper()
-        }), response.status_code
-        
-    except requests.exceptions.Timeout:
-        logger.error('Timeout na requisição para o Mikrotik')
-        return jsonify({
-            'success': False,
-            'error': 'Timeout na conexão com o roteador',
-            'code': 'TIMEOUT'
-        }), 408
-        
-    except requests.exceptions.ConnectionError:
-        logger.error('Erro de conexão com o Mikrotik')
-        return jsonify({
-            'success': False,
-            'error': 'Não foi possível conectar ao roteador',
-            'code': 'CONNECTION_ERROR'
-        }), 503
-        
-    except requests.exceptions.RequestException as e:
-        logger.error(f'Erro na requisição: {str(e)}')
-        return jsonify({
-            'success': False,
-            'error': f'Erro na requisição: {str(e)}',
-            'code': 'REQUEST_ERROR'
-        }), 500
+        return jsonify(result), result.get('status', 200)
         
     except Exception as e:
         logger.error(f'Erro interno: {str(e)}')
@@ -135,23 +87,43 @@ def mikrotik_proxy():
             'code': 'INTERNAL_ERROR'
         }), 500
 
-@app.route('/api/mikrotik/test-connection', methods=['POST'])
-def test_mikrotik_connection():
+@app.route('/api/router/test-connection', methods=['POST'])
+def test_router_connection():
     """
-    Endpoint específico para testar conexão com Mikrotik
+    Endpoint específico para testar conexão com diferentes tipos de roteadores
     """
     try:
         data = request.get_json()
         
-        # Usar o endpoint de system/resource para teste
-        test_data = {
-            **data,
-            'path': '/rest/system/resource',
-            'method': 'GET'
-        }
+        # Validar campos obrigatórios
+        required_fields = ['routerType', 'endpoint', 'user', 'password']
+        for field in required_fields:
+            if field not in data or not data[field]:
+                return jsonify({'error': f'Campo obrigatório ausente: {field}'}), 400
         
-        # Reutilizar a lógica do proxy
-        return mikrotik_proxy()
+        router_type = data['routerType'].lower()
+        
+        # Verificar se o tipo de roteador é suportado
+        if router_type not in ROUTER_CLASSES:
+            return jsonify({
+                'error': f'Tipo de roteador não suportado: {router_type}',
+                'supported_types': list(ROUTER_CLASSES.keys())
+            }), 400
+        
+        # Instanciar a classe específica do roteador
+        router_class = ROUTER_CLASSES[router_type]
+        router = router_class(
+            endpoint=data['endpoint'],
+            port=data.get('port', ''),
+            user=data['user'],
+            password=data['password'],
+            use_https=data.get('useHttps', False)
+        )
+        
+        # Testar conexão usando o método específico de cada roteador
+        result = router.test_connection()
+        
+        return jsonify(result), result.get('status', 200)
         
     except Exception as e:
         logger.error(f'Erro no teste de conexão: {str(e)}')
