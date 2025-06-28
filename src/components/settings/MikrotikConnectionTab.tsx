@@ -106,6 +106,9 @@ const MikrotikConnectionTab = () => {
     const port = formData.port ? `:${formData.port}` : '';
     const url = `${protocol}://${formData.endpoint}${port}/rest/system/resource`;
     
+    console.log(`Using protocol: ${protocol}`);
+    console.log(`Full URL: ${url}`);
+    
     // Criar credenciais Basic Auth
     const credentials = btoa(`${formData.user}:${formData.password}`);
     
@@ -115,7 +118,7 @@ const MikrotikConnectionTab = () => {
     };
 
     try {
-      console.log(`Making request to: ${url}`);
+      console.log(`Making ${formData.useHttps ? 'HTTPS' : 'HTTP'} request to: ${url}`);
       
       const response = await fetch(url, {
         method: 'GET',
@@ -142,7 +145,7 @@ const MikrotikConnectionTab = () => {
       if (response.status === 200) {
         toast({
           title: "✅ Conexão bem-sucedida!",
-          description: "A conexão com o roteador Mikrotik foi estabelecida com sucesso.",
+          description: `A conexão ${formData.useHttps ? 'HTTPS' : 'HTTP'} com o roteador Mikrotik foi estabelecida com sucesso.`,
         });
       } else {
         toast({
@@ -168,7 +171,7 @@ const MikrotikConnectionTab = () => {
 
       toast({
         title: "❌ Erro de conexão",
-        description: "Não foi possível conectar ao roteador. Verifique o endereço e configurações de rede.",
+        description: `Não foi possível conectar ao roteador via ${formData.useHttps ? 'HTTPS' : 'HTTP'}. Verifique o endereço e configurações de rede.`,
         variant: "destructive"
       });
     } finally {
