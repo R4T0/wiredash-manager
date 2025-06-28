@@ -1,61 +1,13 @@
-import React, { useState } from 'react';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+
+import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Switch } from '@/components/ui/switch';
-import { Save, Settings, Router, Shield, Users, FileText, Activity } from 'lucide-react';
+import { Settings, Router, Shield, Users, FileText, Activity } from 'lucide-react';
+import MikrotikConnectionTab from './settings/MikrotikConnectionTab';
+import WireGuardTab from './settings/WireGuardTab';
+import PlaceholderTab from './settings/PlaceholderTab';
 
 const SettingsForm = () => {
-  const [formData, setFormData] = useState({
-    endpoint: '189.17.83.228',
-    port: '80',
-    user: 'admin',
-    password: '',
-    useHttps: false
-  });
-
-  const [wireguardConfig, setWireguardConfig] = useState({
-    endpointPadrao: 'vpn.example.com',
-    portaPadrao: '51820',
-    rangeIpsPermitidos: '10.0.0.0/24',
-    dnsCliente: '1.1.1.1'
-  });
-
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleWireguardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setWireguardConfig(prev => ({
-      ...prev,
-      [name]: value
-    }));
-  };
-
-  const handleSwitchChange = (checked: boolean) => {
-    setFormData(prev => ({
-      ...prev,
-      useHttps: checked
-    }));
-  };
-
-  const handleSave = () => {
-    console.log('Saving global configuration:', formData);
-    alert('Configurações salvas com sucesso!');
-  };
-
-  const handleWireguardSave = () => {
-    console.log('Saving WireGuard configuration:', wireguardConfig);
-    alert('Configurações WireGuard salvas com sucesso!');
-  };
-
   return (
     <div className="max-w-7xl mx-auto space-y-8">
       <div className="flex items-center space-x-3">
@@ -108,194 +60,36 @@ const SettingsForm = () => {
             </TabsTrigger>
           </TabsList>
 
-          <TabsContent value="mikrotik" className="p-6 space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold text-white mb-2">Conexão API do Roteador</h2>
-              <p className="text-gray-400 mb-6">Configure os parâmetros de conexão para a API-REST do roteador Mikrotik</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="endpoint" className="text-gray-300">
-                  Endereço do Roteador
-                </Label>
-                <Input
-                  id="endpoint"
-                  name="endpoint"
-                  type="text"
-                  value={formData.endpoint}
-                  onChange={handleInputChange}
-                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="port" className="text-gray-300">
-                  Porta API
-                </Label>
-                <Input
-                  id="port"
-                  name="port"
-                  type="text"
-                  value={formData.port}
-                  onChange={handleInputChange}
-                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="user" className="text-gray-300">
-                  Usuário
-                </Label>
-                <Input
-                  id="user"
-                  name="user"
-                  type="text"
-                  value={formData.user}
-                  onChange={handleInputChange}
-                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="password" className="text-gray-300">
-                  Senha
-                </Label>
-                <Input
-                  id="password"
-                  name="password"
-                  type="password"
-                  placeholder="••••••••••••"
-                  value={formData.password}
-                  onChange={handleInputChange}
-                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex items-center space-x-3">
-              <Switch
-                id="https"
-                checked={formData.useHttps}
-                onCheckedChange={handleSwitchChange}
-              />
-              <Label htmlFor="https" className="text-gray-300">
-                Usar HTTPS para conexões API
-              </Label>
-            </div>
-
-            <div className="flex justify-end pt-4">
-              <Button
-                onClick={handleSave}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Salvar Configurações
-              </Button>
-            </div>
+          <TabsContent value="mikrotik">
+            <MikrotikConnectionTab />
           </TabsContent>
 
-          <TabsContent value="wireguard" className="p-6 space-y-6">
-            <div>
-              <h2 className="text-xl font-semibold text-white mb-2">Configuração Padrão</h2>
-              <p className="text-gray-400 mb-6">Configure os valores padrão para novos peers e interfaces</p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="endpointPadrao" className="text-gray-300">
-                  Endpoint Padrão
-                </Label>
-                <Input
-                  id="endpointPadrao"
-                  name="endpointPadrao"
-                  type="text"
-                  value={wireguardConfig.endpointPadrao}
-                  onChange={handleWireguardChange}
-                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="portaPadrao" className="text-gray-300">
-                  Porta Padrão
-                </Label>
-                <Input
-                  id="portaPadrao"
-                  name="portaPadrao"
-                  type="text"
-                  value={wireguardConfig.portaPadrao}
-                  onChange={handleWireguardChange}
-                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                />
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-2">
-                <Label htmlFor="rangeIpsPermitidos" className="text-gray-300">
-                  Range de IPs Permitidos
-                </Label>
-                <Input
-                  id="rangeIpsPermitidos"
-                  name="rangeIpsPermitidos"
-                  type="text"
-                  value={wireguardConfig.rangeIpsPermitidos}
-                  onChange={handleWireguardChange}
-                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="dnsCliente" className="text-gray-300">
-                  DNS do Cliente
-                </Label>
-                <Input
-                  id="dnsCliente"
-                  name="dnsCliente"
-                  type="text"
-                  value={wireguardConfig.dnsCliente}
-                  onChange={handleWireguardChange}
-                  className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
-                />
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-4">
-              <Button
-                onClick={handleWireguardSave}
-                className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white px-8"
-              >
-                <Save className="w-4 h-4 mr-2" />
-                Salvar Configurações Padrão
-              </Button>
-            </div>
+          <TabsContent value="wireguard">
+            <WireGuardTab />
           </TabsContent>
 
-          <TabsContent value="usuarios" className="p-6">
-            <div className="text-center py-12">
-              <Users className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">Gerenciamento de Usuários</h3>
-              <p className="text-gray-400">Configurar usuários e permissões do sistema</p>
-            </div>
+          <TabsContent value="usuarios">
+            <PlaceholderTab 
+              icon={Users}
+              title="Gerenciamento de Usuários"
+              description="Configurar usuários e permissões do sistema"
+            />
           </TabsContent>
 
-          <TabsContent value="logs" className="p-6">
-            <div className="text-center py-12">
-              <FileText className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">Logs do Sistema</h3>
-              <p className="text-gray-400">Visualizar e gerenciar logs de atividades</p>
-            </div>
+          <TabsContent value="logs">
+            <PlaceholderTab 
+              icon={FileText}
+              title="Logs do Sistema"
+              description="Visualizar e gerenciar logs de atividades"
+            />
           </TabsContent>
 
-          <TabsContent value="diagnostico" className="p-6">
-            <div className="text-center py-12">
-              <Activity className="w-16 h-16 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-xl font-semibold text-white mb-2">Diagnóstico</h3>
-              <p className="text-gray-400">Ferramentas de diagnóstico e teste de conectividade</p>
-            </div>
+          <TabsContent value="diagnostico">
+            <PlaceholderTab 
+              icon={Activity}
+              title="Diagnóstico"
+              description="Ferramentas de diagnóstico e teste de conectividade"
+            />
           </TabsContent>
         </Tabs>
       </Card>
