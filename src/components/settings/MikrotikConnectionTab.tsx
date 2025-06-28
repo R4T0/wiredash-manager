@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Save } from 'lucide-react';
+import { Save, Router, Shield, Network } from 'lucide-react';
 
 const MikrotikConnectionTab = () => {
   const [formData, setFormData] = useState({
@@ -14,6 +13,14 @@ const MikrotikConnectionTab = () => {
     password: '',
     useHttps: false
   });
+
+  const [selectedRouter, setSelectedRouter] = useState('mikrotik');
+
+  const routerTypes = [
+    { id: 'mikrotik', name: 'Mikrotik', icon: Router },
+    { id: 'opnsense', name: 'OPNsense', icon: Shield },
+    { id: 'pfsense', name: 'Pfsense', icon: Network }
+  ];
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -37,9 +44,34 @@ const MikrotikConnectionTab = () => {
 
   return (
     <div className="p-6 space-y-6">
+      <div className="bg-gray-800/30 rounded-lg p-4 border border-gray-700/50">
+        <h3 className="text-sm font-medium text-gray-300 mb-3">Tipos de Roteadores Compatíveis</h3>
+        <div className="flex flex-wrap gap-2">
+          {routerTypes.map((router) => {
+            const IconComponent = router.icon;
+            return (
+              <button
+                key={router.id}
+                onClick={() => setSelectedRouter(router.id)}
+                className={`
+                  flex items-center space-x-2 px-4 py-2 rounded-lg border transition-all duration-200
+                  ${selectedRouter === router.id 
+                    ? 'bg-gray-700/50 border-gray-500 text-white shadow-md shadow-gray-500/20' 
+                    : 'bg-gray-800/50 border-gray-600 text-gray-400 hover:bg-gray-700/30 hover:border-gray-500 hover:text-gray-300 hover:shadow-sm hover:shadow-gray-500/10'
+                  }
+                `}
+              >
+                <IconComponent className="w-4 h-4" />
+                <span className="text-sm font-medium">{router.name}</span>
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
       <div>
         <h2 className="text-xl font-semibold text-white mb-2">Conexão API do Roteador</h2>
-        <p className="text-gray-400 mb-6">Configure os parâmetros de conexão para a API-REST do roteador Mikrotik</p>
+        <p className="text-gray-400 mb-6">Configure os parâmetros de conexão para a API-REST do roteador {routerTypes.find(r => r.id === selectedRouter)?.name}</p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
