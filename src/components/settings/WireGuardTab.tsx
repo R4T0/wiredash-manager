@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -14,6 +15,7 @@ const WireGuardTab = () => {
 
   const handleWireguardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
+    console.log(`Updating WG ${name} to:`, value);
     setWireguardConfig(prev => ({
       ...prev,
       [name]: value
@@ -22,7 +24,15 @@ const WireGuardTab = () => {
 
   const handleWireguardSave = () => {
     console.log('Saving WireGuard configuration:', wireguardConfig);
-    alert('Configurações WireGuard salvas com sucesso!');
+    
+    try {
+      // Salvar no localStorage como exemplo
+      localStorage.setItem('wireguardConfig', JSON.stringify(wireguardConfig));
+      alert('Configurações WireGuard salvas com sucesso!');
+    } catch (error) {
+      console.error('Erro ao salvar configurações WireGuard:', error);
+      alert('Erro ao salvar configurações WireGuard!');
+    }
   };
 
   return (
@@ -41,7 +51,7 @@ const WireGuardTab = () => {
             id="endpointPadrao"
             name="endpointPadrao"
             type="text"
-            placeholder="Ex: vpn.minhaempresa.com"
+            placeholder="vpn.minhaempresa.com"
             value={wireguardConfig.endpointPadrao}
             onChange={handleWireguardChange}
             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-green-500"
@@ -56,7 +66,7 @@ const WireGuardTab = () => {
             id="portaPadrao"
             name="portaPadrao"
             type="text"
-            placeholder="Ex: 51820"
+            placeholder="51820"
             value={wireguardConfig.portaPadrao}
             onChange={handleWireguardChange}
             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-green-500"
@@ -73,7 +83,7 @@ const WireGuardTab = () => {
             id="rangeIpsPermitidos"
             name="rangeIpsPermitidos"
             type="text"
-            placeholder="Ex: 10.0.0.0/24"
+            placeholder="10.0.0.0/24"
             value={wireguardConfig.rangeIpsPermitidos}
             onChange={handleWireguardChange}
             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-green-500"
@@ -88,7 +98,7 @@ const WireGuardTab = () => {
             id="dnsCliente"
             name="dnsCliente"
             type="text"
-            placeholder="Ex: 1.1.1.1, 8.8.8.8"
+            placeholder="1.1.1.1, 8.8.8.8"
             value={wireguardConfig.dnsCliente}
             onChange={handleWireguardChange}
             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-green-500"
