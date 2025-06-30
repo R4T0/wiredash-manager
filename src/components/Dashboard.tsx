@@ -42,8 +42,8 @@ const Dashboard = () => {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-4xl font-bold text-white mb-2">Dashboard WireGuard</h1>
-          <p className="text-gray-400 text-lg">Gerencie seus peers e interfaces Mikrotik</p>
+          <h1 className="text-4xl font-bold text-white mb-2">Dashboard Manager</h1>
+          <p className="text-gray-400 text-lg">Gerencie Interfaces e peers do seu Wireguard</p>
         </div>
         <Button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white shadow-lg">
           <Plus className="w-4 h-4 mr-2" />
