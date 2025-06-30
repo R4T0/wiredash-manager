@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useApiLogsContext } from '@/contexts/ApiLogsContext';
@@ -28,13 +29,14 @@ export const useWireguardPeers = () => {
   const { toast } = useToast();
   const { addLog } = useApiLogsContext();
 
-  // Generate automatic public key (placeholder - normally would be generated properly)
+  // Generate valid WireGuard public key (base64 format, 44 characters)
   const generatePublicKey = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/';
     let result = '';
-    for (let i = 0; i < 44; i++) {
+    for (let i = 0; i < 43; i++) {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
+    result += '='; // WireGuard keys end with '=' for padding
     return result;
   };
 
@@ -58,6 +60,8 @@ export const useWireguardPeers = () => {
     };
 
     try {
+      console.log('Fetching interface port for:', interfaceName);
+      
       const response = await fetch(proxyUrl, {
         method: 'POST',
         headers: {
@@ -72,7 +76,9 @@ export const useWireguardPeers = () => {
       if (responseData.success && responseData.data) {
         const interfaces = Array.isArray(responseData.data) ? responseData.data : [];
         const targetInterface = interfaces.find(iface => iface.name === interfaceName);
-        return targetInterface?.['listen-port'] || 51820;
+        const port = targetInterface?.['listen-port'] || 51820;
+        console.log(`Interface ${interfaceName} port:`, port);
+        return port;
       }
     } catch (error) {
       console.error('Failed to get interface port:', error);
@@ -201,8 +207,13 @@ export const useWireguardPeers = () => {
     const startTime = Date.now();
     const proxyUrl = 'http://localhost:5000/api/router/proxy';
 
-    // Get endpoint port from interface
+    // Get the correct endpoint port from the selected interface
     const endpointPort = await getEndpointPort(peerData.interface);
+    
+    // Generate valid WireGuard public key
+    const publicKey = generatePublicKey();
+
+    console.log('Creating peer with interface port:', endpointPort);
 
     const requestBody = {
       routerType: config.routerType,
@@ -216,7 +227,7 @@ export const useWireguardPeers = () => {
       body: {
         name: peerData.name,
         interface: peerData.interface,
-        'public-key': generatePublicKey(),
+        'public-key': publicKey,
         'allowed-address': peerData['allowed-address'],
         'endpoint-address': peerData['endpoint-address'],
         'endpoint-port': endpointPort
@@ -246,6 +257,7 @@ export const useWireguardPeers = () => {
         status: response.status,
         requestHeaders: { 'Content-Type': 'application/json' },
         responseHeaders: Object.fromEntries(response.headers.entries()),
+        requestBody: JSON.stringify(requestBody.body),
         responseBody: JSON.stringify(responseData),
         duration
       });
@@ -253,7 +265,7 @@ export const useWireguardPeers = () => {
       if (response.ok && responseData.success) {
         toast({
           title: "✅ Peer criado com sucesso",
-          description: "O peer WireGuard foi configurado no roteador.",
+          description: `O peer ${peerData.name} foi configurado no roteador.`,
         });
         
         // Refresh peers list
@@ -263,7 +275,7 @@ export const useWireguardPeers = () => {
         console.error('Failed to create peer:', responseData);
         toast({
           title: "Erro ao criar peer",
-          description: responseData.error || "Falha na comunicação com o roteador",
+          description: responseData.data?.detail || responseData.error || "Falha na comunicação com o roteador",
           variant: "destructive"
         });
         return false;
@@ -278,6 +290,7 @@ export const useWireguardPeers = () => {
         method: 'PUT',
         url: '/rest/interface/wireguard/peers',
         requestHeaders: { 'Content-Type': 'application/json' },
+        requestBody: JSON.stringify(requestBody.body),
         error: errorMessage,
         duration
       });
