@@ -171,6 +171,11 @@ PersistentKeepalive = 25`;
     return selectedPeerData.name || selectedPeerData['endpoint-address'] || `peer-${selectedPeerData.id || selectedPeerData['.id']}`;
   };
 
+  // Helper function to check if peer is active
+  const isPeerActive = (peer: any) => {
+    return peer.disabled === false || peer.disabled === 'false' || !peer.disabled;
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
       <div>
@@ -220,7 +225,7 @@ PersistentKeepalive = 25`;
                           {filteredPeers.map((peer) => {
                             const peerId = peer.id || peer['.id'];
                             const peerName = peer.name || peer['endpoint-address'] || `peer-${peerId}`;
-                            const isActive = peer.disabled === 'false' || peer.disabled === false || !peer.disabled;
+                            const isActive = isPeerActive(peer);
                             
                             return (
                               <CommandItem
