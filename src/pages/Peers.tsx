@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -5,11 +6,15 @@ import { Button } from '@/components/ui/button';
 import { Users, Plus, Edit, QrCode, Trash2, Activity, UserCheck, Clock } from 'lucide-react';
 import StatsCard from '../components/StatsCard';
 import CreatePeerModal from '../components/CreatePeerModal';
+import EditPeerModal from '../components/EditPeerModal';
 import { useWireguardPeers } from '../hooks/useWireguardPeers';
 
 const Peers = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-  const { peers, isLoading, isCreating, createPeer } = useWireguardPeers();
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [selectedPeer, setSelectedPeer] = useState(null);
+  const [isUpdating, setIsUpdating] = useState(false);
+  const { peers, isLoading, isCreating, createPeer, fetchPeers } = useWireguardPeers();
 
   // Check if router is Mikrotik
   const savedConfig = localStorage.getItem('routerConfig');
@@ -17,15 +22,18 @@ const Peers = () => {
 
   // Fallback data for non-Mikrotik routers or when no data is available
   const fallbackPeers = [
-    { id: '1', name: 'Cliente 001', interface: 'wg-main', 'public-key': 'ABC123...', 'allowed-address': '10.0.0.10/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51820, disabled: false },
-    { id: '2', name: 'Cliente 002', interface: 'wg-main', 'public-key': 'DEF456...', 'allowed-address': '10.0.0.11/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51820, disabled: false },
-    { id: '3', name: 'Mobile User', interface: 'wg-mobile-clients', 'public-key': 'GHI789...', 'allowed-address': '10.1.0.5/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51821, disabled: true },
-    { id: '4', name: 'Branch Office', interface: 'wg-branch-office', 'public-key': 'JKL012...', 'allowed-address': '10.2.0.1/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51822, disabled: false },
+    { id: '1', name: 'Cliente 001', interface: 'wg-main', 'public-key': 'ABC123...', 'allowed-address': '10.0.0.10/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51820, disabled: 'false' },
+    { id: '2', name: 'Cliente 002', interface: 'wg-main', 'public-key': 'DEF456...', 'allowed-address': '10.0.0.11/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51820, disabled: 'false' },
+    { id: '3', name: 'Mobile User', interface: 'wg-mobile-clients', 'public-key': 'GHI789...', 'allowed-address': '10.1.0.5/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51821, disabled: 'true' },
+    { id: '4', name: 'Branch Office', interface: 'wg-branch-office', 'public-key': 'JKL012...', 'allowed-address': '10.2.0.1/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51822, disabled: 'false' },
   ];
 
   const displayPeers = isMikrotik && peers.length > 0 ? peers : fallbackPeers;
   const totalPeers = displayPeers.length;
-  const onlinePeers = displayPeers.filter(peer => !peer.disabled).length;
+  // Status is based on disabled parameter: disabled='false' or disabled=false means active
+  const onlinePeers = displayPeers.filter(peer => 
+    peer.disabled === 'false' || peer.disabled === false || !peer.disabled
+  ).length;
   const recentPeers = Math.ceil(totalPeers * 0.6); // Simulate recent peers
 
   const stats = [
@@ -55,6 +63,20 @@ const Peers = () => {
 
   const handleCreatePeer = async (data: { name: string; interface: string; 'allowed-address': string; 'endpoint-address': string }) => {
     return await createPeer(data);
+  };
+
+  const handleEditPeer = (peer: any) => {
+    setSelectedPeer(peer);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    fetchPeers(); // Refresh peers list
+  };
+
+  // Check if peer is active (not disabled)
+  const isPeerActive = (peer: any) => {
+    return peer.disabled === 'false' || peer.disabled === false || !peer.disabled;
   };
 
   return (
@@ -116,10 +138,10 @@ const Peers = () => {
             ) : (
               <div className="space-y-3">
                 {displayPeers.map((peer) => (
-                  <div key={peer.id} className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 hover:bg-gray-800/70 transition-colors">
+                  <div key={peer.id || peer['.id']} className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 hover:bg-gray-800/70 transition-colors">
                     <div className="flex items-center space-x-4 flex-1">
                       <div className="flex items-center space-x-2">
-                        {!peer.disabled ? (
+                        {isPeerActive(peer) ? (
                           <div className="flex items-center text-green-400">
                             <Activity className="w-4 h-4" />
                             <span className="text-xs ml-1 font-medium">Ativo</span>
@@ -134,7 +156,7 @@ const Peers = () => {
                       <div className="flex-1">
                         <div className="flex items-center space-x-4">
                           <div>
-                            <h3 className="font-semibold text-white">{peer.name || peer['endpoint-address'] || `peer-${peer.id}`}</h3>
+                            <h3 className="font-semibold text-white">{peer.name || peer['endpoint-address'] || `peer-${peer.id || peer['.id']}`}</h3>
                             <p className="text-sm text-gray-400">
                               {peer.interface} • {peer['allowed-address']}
                               {peer['endpoint-port'] && ` • Porta: ${peer['endpoint-port']}`}
@@ -150,7 +172,12 @@ const Peers = () => {
                       <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 h-8 w-8 p-0">
                         <QrCode className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-yellow-400 hover:text-yellow-300 hover:bg-yellow-600/20 h-8 w-8 p-0">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-yellow-400 hover:text-yellow-300 hover:bg-yellow-600/20 h-8 w-8 p-0"
+                        onClick={() => handleEditPeer(peer)}
+                      >
                         <Edit className="w-4 h-4" />
                       </Button>
                       <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-600/20 h-8 w-8 p-0">
@@ -169,6 +196,14 @@ const Peers = () => {
           onClose={() => setIsCreateModalOpen(false)}
           onSubmit={handleCreatePeer}
           isCreating={isCreating}
+        />
+
+        <EditPeerModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSuccess={handleEditSuccess}
+          peer={selectedPeer}
+          isUpdating={isUpdating}
         />
       </div>
     </Layout>
