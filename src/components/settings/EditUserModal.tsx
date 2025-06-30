@@ -6,6 +6,7 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 
 interface User {
   id: string;
@@ -13,7 +14,7 @@ interface User {
   email: string;
   password: string;
   enabled: boolean;
-  createdAt: string;
+  created_at: string;
 }
 
 interface EditUserModalProps {
@@ -24,12 +25,14 @@ interface EditUserModalProps {
 
 const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onClose }) => {
   const { updateUser } = useAuth();
+  const { toast } = useToast();
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     password: '',
     enabled: true
   });
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   React.useEffect(() => {
     if (user) {
@@ -50,17 +53,44 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onClose }) 
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!user || !formData.name || !formData.email || !formData.password) {
-      alert('Por favor, preencha todos os campos');
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos",
+        variant: "destructive"
+      });
       return;
     }
 
-    updateUser(user.id, formData);
-    onClose();
-    alert('Usuário atualizado com sucesso!');
+    setIsSubmitting(true);
+    
+    try {
+      const success = await updateUser(user.id, formData);
+      if (success) {
+        onClose();
+        toast({
+          title: "✅ Usuário atualizado",
+          description: "Usuário atualizado com sucesso!",
+        });
+      } else {
+        toast({
+          title: "❌ Erro ao atualizar",
+          description: "Não foi possível atualizar o usuário.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "❌ Erro",
+        description: "Ocorreu um erro ao atualizar o usuário.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!user) return null;
@@ -131,15 +161,17 @@ const EditUserModal: React.FC<EditUserModalProps> = ({ user, isOpen, onClose }) 
               type="button"
               variant="outline"
               onClick={onClose}
+              disabled={isSubmitting}
               className="border-gray-600 text-gray-300 hover:bg-gray-700"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
+              disabled={isSubmitting}
               className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-md shadow-green-500/15"
             >
-              Salvar
+              {isSubmitting ? 'Salvando...' : 'Salvar'}
             </Button>
           </div>
         </form>

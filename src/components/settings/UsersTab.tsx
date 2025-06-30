@@ -8,10 +8,11 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Plus, Users, Edit, Trash2, UserX } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useToast } from '@/hooks/use-toast';
 import EditUserModal from './EditUserModal';
 
 const UsersTab = () => {
-  const { users, addUser, updateUser, deleteUser } = useAuth();
+  const { users, addUser, updateUser, deleteUser, isLoading } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingUser, setEditingUser] = useState<any>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -21,6 +22,7 @@ const UsersTab = () => {
     password: '',
     enabled: true
   });
+  const { toast } = useToast();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -30,18 +32,33 @@ const UsersTab = () => {
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newUser.name || !newUser.email || !newUser.password) {
-      alert('Por favor, preencha todos os campos');
+      toast({
+        title: "Campos obrigatórios",
+        description: "Por favor, preencha todos os campos",
+        variant: "destructive"
+      });
       return;
     }
 
-    addUser(newUser);
-    setNewUser({ name: '', email: '', password: '', enabled: true });
-    setIsDialogOpen(false);
-    alert('Usuário cadastrado com sucesso!');
+    const success = await addUser(newUser);
+    if (success) {
+      setNewUser({ name: '', email: '', password: '', enabled: true });
+      setIsDialogOpen(false);
+      toast({
+        title: "✅ Usuário criado",
+        description: "Usuário cadastrado com sucesso!",
+      });
+    } else {
+      toast({
+        title: "❌ Erro ao criar usuário",
+        description: "Verifique se o email já não está em uso.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleEditUser = (user: any) => {
@@ -49,17 +66,49 @@ const UsersTab = () => {
     setIsEditModalOpen(true);
   };
 
-  const handleToggleUser = (userId: string, enabled: boolean) => {
-    updateUser(userId, { enabled });
-    alert(`Usuário ${enabled ? 'ativado' : 'desativado'} com sucesso!`);
-  };
-
-  const handleDeleteUser = (userId: string) => {
-    if (confirm('Tem certeza que deseja excluir este usuário?')) {
-      deleteUser(userId);
-      alert('Usuário excluído com sucesso!');
+  const handleToggleUser = async (userId: string, enabled: boolean) => {
+    const success = await updateUser(userId, { enabled });
+    if (success) {
+      toast({
+        title: `✅ Usuário ${enabled ? 'ativado' : 'desativado'}`,
+        description: `O usuário foi ${enabled ? 'ativado' : 'desativado'} com sucesso!`,
+      });
+    } else {
+      toast({
+        title: "❌ Erro",
+        description: "Não foi possível alterar o status do usuário.",
+        variant: "destructive"
+      });
     }
   };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (confirm('Tem certeza que deseja excluir este usuário?')) {
+      const success = await deleteUser(userId);
+      if (success) {
+        toast({
+          title: "✅ Usuário removido",
+          description: "Usuário excluído com sucesso!",
+        });
+      } else {
+        toast({
+          title: "❌ Erro ao remover usuário",
+          description: "Não foi possível excluir o usuário.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-6">
+        <div className="flex items-center justify-center h-32">
+          <div className="text-gray-400">Carregando usuários...</div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 space-y-6">
@@ -187,7 +236,7 @@ const UsersTab = () => {
                     )}
                   </div>
                   <p className="text-sm text-gray-400">{user.email}</p>
-                  <p className="text-xs text-gray-500">Cadastrado em: {user.createdAt}</p>
+                  <p className="text-xs text-gray-500">Cadastrado em: {user.created_at}</p>
                   <p className={`text-xs ${user.enabled ? 'text-green-400' : 'text-red-400'}`}>
                     Status: {user.enabled ? 'Ativo' : 'Desativado'}
                   </p>

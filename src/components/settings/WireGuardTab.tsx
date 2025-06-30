@@ -4,6 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Save } from 'lucide-react';
+import { apiService } from '@/services/api';
+import { useToast } from '@/hooks/use-toast';
 
 const WireGuardTab = () => {
   const [wireguardConfig, setWireguardConfig] = useState({
@@ -12,24 +14,47 @@ const WireGuardTab = () => {
     rangeIpsPermitidos: '',
     dnsCliente: ''
   });
+  const { toast } = useToast();
 
-  // Carregar dados salvos do localStorage quando o componente é montado
+  // Load data from API or localStorage fallback
   useEffect(() => {
-    try {
-      const savedConfig = localStorage.getItem('wireguardConfig');
-      if (savedConfig) {
-        const config = JSON.parse(savedConfig);
-        console.log('Loading saved WireGuard configuration:', config);
-        setWireguardConfig({
-          endpointPadrao: config.endpointPadrao || '',
-          portaPadrao: config.portaPadrao || '',
-          rangeIpsPermitidos: config.rangeIpsPermitidos || '',
-          dnsCliente: config.dnsCliente || ''
-        });
+    const loadConfig = async () => {
+      try {
+        console.log('Loading WireGuard configuration from API...');
+        const response = await apiService.getWireguardConfig();
+        
+        if (response.success && response.data) {
+          const config = response.data;
+          console.log('WireGuard configuration loaded from API:', config);
+          setWireguardConfig({
+            endpointPadrao: config.endpoint_padrao || '',
+            portaPadrao: config.porta_padrao || '',
+            rangeIpsPermitidos: config.range_ips_permitidos || '',
+            dnsCliente: config.dns_cliente || ''
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load WireGuard config from API, trying localStorage:', error);
+        // Fallback to localStorage
+        try {
+          const savedConfig = localStorage.getItem('wireguardConfig');
+          if (savedConfig) {
+            const config = JSON.parse(savedConfig);
+            console.log('Loading saved WireGuard configuration from localStorage:', config);
+            setWireguardConfig({
+              endpointPadrao: config.endpointPadrao || '',
+              portaPadrao: config.portaPadrao || '',
+              rangeIpsPermitidos: config.rangeIpsPermitidos || '',
+              dnsCliente: config.dnsCliente || ''
+            });
+          }
+        } catch (localError) {
+          console.error('Error loading from localStorage:', localError);
+        }
       }
-    } catch (error) {
-      console.error('Erro ao carregar configurações WireGuard salvas:', error);
-    }
+    };
+
+    loadConfig();
   }, []);
 
   const handleWireguardChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -41,16 +66,27 @@ const WireGuardTab = () => {
     }));
   };
 
-  const handleWireguardSave = () => {
+  const handleWireguardSave = async () => {
     console.log('Saving WireGuard configuration:', wireguardConfig);
     
     try {
-      localStorage.setItem('wireguardConfig', JSON.stringify(wireguardConfig));
-      console.log('WireGuard configuration saved successfully to localStorage');
-      alert('Configurações WireGuard salvas com sucesso!');
+      const response = await apiService.saveWireguardConfig(wireguardConfig);
+      if (response.success) {
+        console.log('WireGuard configuration saved successfully to API');
+        toast({
+          title: "✅ Configurações salvas",
+          description: "As configurações WireGuard foram salvas com sucesso no banco de dados!",
+        });
+      }
     } catch (error) {
-      console.error('Erro ao salvar configurações WireGuard:', error);
-      alert('Erro ao salvar configurações WireGuard!');
+      console.error('Failed to save to API, falling back to localStorage:', error);
+      // Fallback to localStorage
+      localStorage.setItem('wireguardConfig', JSON.stringify(wireguardConfig));
+      console.log('WireGuard configuration saved to localStorage as fallback');
+      toast({
+        title: "⚠️ Configurações salvas localmente",
+        description: "As configurações WireGuard foram salvas localmente (API indisponível).",
+      });
     }
   };
 
