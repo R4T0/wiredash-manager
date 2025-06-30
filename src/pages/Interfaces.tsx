@@ -26,6 +26,7 @@ const Interfaces = () => {
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingInterface, setEditingInterface] = useState<WireGuardInterface | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchInterfaces = async () => {
@@ -106,6 +107,83 @@ const Interfaces = () => {
       });
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleToggleInterface = async (interfaceId: string, interfaceName: string, currentDisabled: string) => {
+    const willDisable = currentDisabled === 'false';
+    const action = willDisable ? 'desabilitar' : 'habilitar';
+    
+    if (!confirm(`Tem certeza que deseja ${action} a interface ${interfaceName}?`)) {
+      return;
+    }
+
+    setTogglingId(interfaceId);
+
+    try {
+      const savedConfig = localStorage.getItem('routerConfig');
+      if (!savedConfig) {
+        toast({
+          title: "Configuração não encontrada",
+          description: "Configure a conexão com o roteador primeiro.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const config = JSON.parse(savedConfig);
+      const proxyUrl = 'http://localhost:5000/api/router/proxy';
+      
+      const requestBody = {
+        routerType: config.routerType || 'mikrotik',
+        endpoint: config.endpoint,
+        port: config.port,
+        user: config.user,
+        password: config.password,
+        useHttps: config.useHttps,
+        path: `/rest/interface/wireguard/${interfaceId}`,
+        method: 'PATCH',
+        body: {
+          disabled: willDisable
+        }
+      };
+
+      console.log('Toggling WireGuard interface...', requestBody);
+
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(15000)
+      });
+
+      const responseData = await response.json();
+      console.log('Toggle interface response:', responseData);
+
+      if (responseData.success) {
+        toast({
+          title: `Interface ${willDisable ? 'desabilitada' : 'habilitada'}`,
+          description: `Interface ${interfaceName} foi ${willDisable ? 'desabilitada' : 'habilitada'} com sucesso.`,
+        });
+        await fetchInterfaces(); // Refresh the list
+      } else {
+        toast({
+          title: `Erro ao ${action} interface`,
+          description: responseData.error || `Falha ao ${action} a interface.`,
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error toggling interface:', error);
+      toast({
+        title: "Erro de conexão",
+        description: "Não foi possível conectar ao backend.",
+        variant: "destructive"
+      });
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -296,6 +374,7 @@ const Interfaces = () => {
                   const isRunning = iface.running === 'true';
                   const isEnabled = iface.disabled === 'false';
                   const isDeleting = deletingId === iface['.id'];
+                  const isToggling = togglingId === iface['.id'];
                   
                   return (
                     <div key={iface['.id']} className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 hover:bg-gray-800/70 transition-colors">
@@ -340,15 +419,15 @@ const Interfaces = () => {
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
-                        {isEnabled ? (
-                          <Button variant="ghost" size="sm" className="text-orange-400 hover:text-orange-300 hover:bg-orange-600/20 h-8 w-8 p-0">
-                            <PowerOff className="w-4 h-4" />
-                          </Button>
-                        ) : (
-                          <Button variant="ghost" size="sm" className="text-green-400 hover:text-green-300 hover:bg-green-600/20 h-8 w-8 p-0">
-                            <Power className="w-4 h-4" />
-                          </Button>
-                        )}
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className={`h-8 w-8 p-0 ${isEnabled ? 'text-orange-400 hover:text-orange-300 hover:bg-orange-600/20' : 'text-green-400 hover:text-green-300 hover:bg-green-600/20'}`}
+                          onClick={() => handleToggleInterface(iface['.id'], iface.name, iface.disabled)}
+                          disabled={isToggling}
+                        >
+                          {isEnabled ? <PowerOff className="w-4 h-4" /> : <Power className="w-4 h-4" />}
+                        </Button>
                         <Button 
                           variant="ghost" 
                           size="sm" 

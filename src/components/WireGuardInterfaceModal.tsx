@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2 } from 'lucide-react';
+import { Loader2, RefreshCw } from 'lucide-react';
 
 interface WireGuardInterfaceModalProps {
   isOpen: boolean;
@@ -20,7 +20,45 @@ const WireGuardInterfaceModal = ({ isOpen, onClose, onSuccess }: WireGuardInterf
     privateKey: ''
   });
   const [isCreating, setIsCreating] = useState(false);
+  const [isGeneratingKey, setIsGeneratingKey] = useState(false);
   const { toast } = useToast();
+
+  // Função para gerar chave privada WireGuard
+  const generatePrivateKey = async () => {
+    setIsGeneratingKey(true);
+    try {
+      // Gerar 32 bytes aleatórios e codificar em base64
+      const array = new Uint8Array(32);
+      crypto.getRandomValues(array);
+      const base64Key = btoa(String.fromCharCode(...array));
+      
+      setFormData(prev => ({
+        ...prev,
+        privateKey: base64Key
+      }));
+      
+      toast({
+        title: "Chave gerada",
+        description: "Nova chave privada WireGuard foi gerada com sucesso.",
+      });
+    } catch (error) {
+      console.error('Error generating private key:', error);
+      toast({
+        title: "Erro ao gerar chave",
+        description: "Não foi possível gerar a chave privada.",
+        variant: "destructive"
+      });
+    } finally {
+      setIsGeneratingKey(false);
+    }
+  };
+
+  // Gerar chave automaticamente ao abrir o modal
+  useEffect(() => {
+    if (isOpen && !formData.privateKey) {
+      generatePrivateKey();
+    }
+  }, [isOpen]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -163,15 +201,31 @@ const WireGuardInterfaceModal = ({ isOpen, onClose, onSuccess }: WireGuardInterf
             <Label htmlFor="privateKey" className="text-right text-white">
               Chave Privada
             </Label>
-            <Input
-              id="privateKey"
-              name="privateKey"
-              value={formData.privateKey}
-              onChange={handleInputChange}
-              placeholder="Chave privada WireGuard"
-              className="col-span-3 bg-gray-800 border-gray-700 text-white"
-              disabled={isCreating}
-            />
+            <div className="col-span-3 flex gap-2">
+              <Input
+                id="privateKey"
+                name="privateKey"
+                value={formData.privateKey}
+                onChange={handleInputChange}
+                placeholder="Chave privada WireGuard"
+                className="flex-1 bg-gray-800 border-gray-700 text-white"
+                disabled={isCreating}
+              />
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={generatePrivateKey}
+                disabled={isCreating || isGeneratingKey}
+                className="border-gray-700 text-gray-300 hover:bg-gray-800"
+              >
+                {isGeneratingKey ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
           </div>
         </div>
         <DialogFooter>
