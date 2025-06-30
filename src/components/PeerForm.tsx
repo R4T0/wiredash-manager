@@ -1,198 +1,451 @@
-<div className="container mx-auto p-3 max-w-5xl space-y-4">
-  {/* Header Section */}
-  <div className="text-center space-y-2 mb-4">
-    <div className="flex items-center justify-center space-x-2 mb-2">
-      <div className="bg-gradient-to-r from-blue-600 to-green-600 p-1.5 rounded-full">
-        <Settings className="w-5 h-5 text-white" />
+
+import React, { useState, useEffect } from 'react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Separator } from '@/components/ui/separator';
+import { Plus, Download, QrCode, Copy, Check, Search, Settings, Wifi } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { useToast } from '@/hooks/use-toast';
+import { useWireguardPeers } from '@/hooks/useWireguardPeers';
+
+interface PeerFormData {
+  selectedPeer: string;
+  interface: string;
+  endpoint: string;
+  endpointPort: number;
+  allowedAddress: string;
+  clientDns: string;
+  clientEndpoint: string;
+}
+
+const PeerForm = () => {
+  const { toast } = useToast();
+  const { peers, isLoading } = useWireguardPeers();
+  const [open, setOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+  
+  const [formData, setFormData] = useState<PeerFormData>({
+    selectedPeer: '',
+    interface: '',
+    endpoint: '',
+    endpointPort: 51820,
+    allowedAddress: '',
+    clientDns: '1.1.1.1',
+    clientEndpoint: '0.0.0.0'
+  });
+
+  const [interfaces, setInterfaces] = useState([
+    'wg-main',
+    'wg-branch-office',
+    'wg-mobile-clients',
+    'wg-test'
+  ]);
+
+  const [generated, setGenerated] = useState(false);
+  const [qrCodeUrl, setQrCodeUrl] = useState('');
+  const [configContent, setConfigContent] = useState('');
+  const [copied, setCopied] = useState(false);
+
+  // Filter peers based on search
+  const filteredPeers = peers.filter(peer => {
+    const peerName = peer.name || peer['endpoint-address'] || `peer-${peer.id || peer['.id']}`;
+    return peerName.toLowerCase().includes(searchValue.toLowerCase());
+  });
+
+  // Get selected peer data
+  const selectedPeerData = peers.find(peer => {
+    const peerId = peer.id || peer['.id'];
+    return peerId === formData.selectedPeer;
+  });
+
+  // Update form data when peer is selected
+  useEffect(() => {
+    if (selectedPeerData) {
+      setFormData(prev => ({
+        ...prev,
+        interface: selectedPeerData.interface || '',
+        allowedAddress: selectedPeerData['allowed-address'] || '',
+        endpoint: selectedPeerData['endpoint-address'] || '',
+        endpointPort: selectedPeerData['endpoint-port'] || 51820
+      }));
+    }
+  }, [selectedPeerData]);
+
+  const handleInputChange = (field: keyof PeerFormData, value: string | number) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }));
+  };
+
+  const handlePeerSelect = (peerId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedPeer: peerId
+    }));
+    setOpen(false);
+  };
+
+  const generateWireGuardConfig = () => {
+    if (!selectedPeerData) return '';
+
+    const clientPrivateKey = 'ABCD1234567890ABCD1234567890ABCD1234567890='; // Simulado
+    const serverPublicKey = selectedPeerData['public-key'] || 'EFGH1234567890EFGH1234567890EFGH1234567890=';
+    
+    const config = `[Interface]
+PrivateKey = ${clientPrivateKey}
+Address = ${formData.allowedAddress}
+DNS = ${formData.clientDns}
+
+[Peer]
+PublicKey = ${serverPublicKey}
+Endpoint = ${formData.endpoint}:${formData.endpointPort}
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25`;
+
+    return config;
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.selectedPeer || !selectedPeerData) {
+      toast({
+        title: "Erro",
+        description: "Selecione um peer para gerar a configuração",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    const config = generateWireGuardConfig();
+    setConfigContent(config);
+    
+    // Simular geração de QR Code
+    const qrData = `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==`;
+    setQrCodeUrl(qrData);
+    
+    setGenerated(true);
+    
+    toast({
+      title: "Sucesso!",
+      description: "Configuração WireGuard gerada com sucesso",
+    });
+  };
+
+  const downloadConfig = () => {
+    const peerName = selectedPeerData?.name || selectedPeerData?.['endpoint-address'] || 'peer-config';
+    const blob = new Blob([configContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${peerName}.conf`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    toast({
+      title: "Download iniciado",
+      description: "Arquivo .conf baixado com sucesso",
+    });
+  };
+
+  const copyToClipboard = () => {
+    navigator.clipboard.writeText(configContent);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+    
+    toast({
+      title: "Copiado!",
+      description: "Configuração copiada para a área de transferência",
+    });
+  };
+
+  const getSelectedPeerName = () => {
+    if (!selectedPeerData) return "Selecione um peer";
+    return selectedPeerData.name || selectedPeerData['endpoint-address'] || `peer-${selectedPeerData.id || selectedPeerData['.id']}`;
+  };
+
+  // Helper function to check if peer is active
+  const isPeerActive = (peer: any) => {
+    return peer.disabled === false || peer.disabled === 'false' || !peer.disabled;
+  };
+
+  return (
+    <div className="container mx-auto p-4 max-w-6xl space-y-6">
+      {/* Header Section */}
+      <div className="text-center space-y-3 mb-6">
+        <div className="flex items-center justify-center space-x-3 mb-4">
+          <div className="bg-gradient-to-r from-blue-600 to-green-600 p-2 rounded-full">
+            <Settings className="w-6 h-6 text-white" />
+          </div>
+          <h1 className="text-3xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
+            Gerenciar Configurações
+          </h1>
+        </div>
+        <p className="text-gray-400 max-w-2xl mx-auto">
+          Selecione um peer existente e gere sua configuração WireGuard completa com QR Code para fácil importação
+        </p>
       </div>
-      <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-green-400 bg-clip-text text-transparent">
-        Gerenciar Configurações
-      </h1>
-    </div>
-    <p className="text-gray-400 text-sm max-w-xl mx-auto">
-      Selecione um peer existente e gere sua configuração WireGuard completa com QR Code para fácil importação
-    </p>
-  </div>
 
-  <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-    {/* Main Configuration Form */}
-    <div className="lg:col-span-2">
-      <Card className="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-gray-700 shadow-xl backdrop-blur-sm">
-        <CardHeader className="pb-3">
-          <CardTitle className="text-lg text-white flex items-center">
-            <Wifi className="w-5 h-5 mr-2 text-blue-400" />
-            Configuração do Peer
-          </CardTitle>
-          <CardDescription className="text-gray-300 text-sm">
-            Configure os parâmetros para gerar a configuração WireGuard
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3 p-3">
-          <form onSubmit={handleSubmit} className="space-y-3">
-            {/* Peer Selection */}
-            <div className="space-y-2">
-              <Label className="text-white text-sm font-medium flex items-center">
-                <Search className="w-4 h-4 mr-2" />
-                Selecionar Peer *
-              </Label>
-              <Popover open={open} onOpenChange={setOpen}>
-                <PopoverTrigger asChild>
-                  <Button
-                    variant="outline"
-                    role="combobox"
-                    aria-expanded={open}
-                    className="w-full h-9 justify-between bg-gray-800 border-gray-600 text-white hover:bg-gray-700 text-left text-sm"
-                    disabled={isLoading}
-                  >
-                    <div className="flex items-center">
-                      <Search className="mr-2 h-4 w-4 text-gray-400" />
-                      <span>
-                        {isLoading ? "Carregando peers..." : getSelectedPeerName()}
-                      </span>
-                    </div>
-                  </Button>
-                </PopoverTrigger>
-                <PopoverContent className="w-full p-0 bg-gray-800 border-gray-700 shadow-xl">
-                  <Command className="bg-gray-800">
-                    <CommandInput 
-                      placeholder="Buscar por nome do peer..." 
-                      className="text-white h-8 text-sm"
-                      value={searchValue}
-                      onValueChange={setSearchValue}
-                    />
-                    <CommandList className="max-h-48">
-                      <CommandEmpty className="text-gray-400 p-3 text-sm">Nenhum peer encontrado.</CommandEmpty>
-                      <CommandGroup>
-                        {filteredPeers.map((peer) => {
-                          const peerId = peer.id || peer['.id'];
-                          const peerName = peer.name || peer['endpoint-address'] || `peer-${peerId}`;
-                          const isActive = isPeerActive(peer);
-                          
-                          return (
-                            <CommandItem
-                              key={peerId}
-                              value={peerId}
-                              onSelect={() => handlePeerSelect(peerId)}
-                              className="text-white hover:bg-gray-700 cursor-pointer px-3 py-2 text-sm"
-                            >
-                              <div className="flex items-center space-x-2 w-full">
-                                <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-400' : 'bg-red-400'}`} />
-                                <div className="flex-1">
-                                  <div className="font-medium">{peerName}</div>
-                                  <div className="text-xs text-gray-400">
-                                    {peer.interface} • {peer['allowed-address']}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Main Configuration Form */}
+        <div className="lg:col-span-2">
+          <Card className="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-gray-700 shadow-xl backdrop-blur-sm">
+            <CardHeader className="pb-4">
+              <CardTitle className="text-xl text-white flex items-center">
+                <Wifi className="w-5 h-5 mr-2 text-blue-400" />
+                Configuração do Peer
+              </CardTitle>
+              <CardDescription className="text-gray-300">
+                Configure os parâmetros para gerar a configuração WireGuard
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-5">
+              <form onSubmit={handleSubmit} className="space-y-5">
+                {/* Peer Selection */}
+                <div className="space-y-3">
+                  <Label className="text-white font-medium flex items-center">
+                    <Search className="w-4 h-4 mr-2" />
+                    Selecionar Peer *
+                  </Label>
+                  <Popover open={open} onOpenChange={setOpen}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={open}
+                        className="w-full h-11 justify-between bg-gray-800 border-gray-600 text-white hover:bg-gray-700 text-left"
+                        disabled={isLoading}
+                      >
+                        <div className="flex items-center">
+                          <Search className="mr-2 h-4 w-4 text-gray-400" />
+                          <span>
+                            {isLoading ? "Carregando peers..." : getSelectedPeerName()}
+                          </span>
+                        </div>
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0 bg-gray-800 border-gray-700 shadow-xl">
+                      <Command className="bg-gray-800">
+                        <CommandInput 
+                          placeholder="Buscar por nome do peer..." 
+                          className="text-white h-11"
+                          value={searchValue}
+                          onValueChange={setSearchValue}
+                        />
+                        <CommandList className="max-h-60">
+                          <CommandEmpty className="text-gray-400 p-4">Nenhum peer encontrado.</CommandEmpty>
+                          <CommandGroup>
+                            {filteredPeers.map((peer) => {
+                              const peerId = peer.id || peer['.id'];
+                              const peerName = peer.name || peer['endpoint-address'] || `peer-${peerId}`;
+                              const isActive = isPeerActive(peer);
+                              
+                              return (
+                                <CommandItem
+                                  key={peerId}
+                                  value={peerId}
+                                  onSelect={() => handlePeerSelect(peerId)}
+                                  className="text-white hover:bg-gray-700 cursor-pointer p-3"
+                                >
+                                  <div className="flex items-center space-x-3 w-full">
+                                    <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-400' : 'bg-red-400'}`} />
+                                    <div className="flex-1">
+                                      <div className="font-medium">{peerName}</div>
+                                      <div className="text-sm text-gray-400">
+                                        {peer.interface} • {peer['allowed-address']}
+                                      </div>
+                                    </div>
                                   </div>
-                                </div>
-                              </div>
-                            </CommandItem>
-                          );
-                        })}
-                      </CommandGroup>
-                    </CommandList>
-                  </Command>
-                </PopoverContent>
-              </Popover>
+                                </CommandItem>
+                              );
+                            })}
+                          </CommandGroup>
+                        </CommandList>
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <Separator className="bg-gray-700" />
+
+                {/* Network Configuration */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-white">Configuração de Rede</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="interface" className="text-white">Interface WireGuard</Label>
+                      <Input
+                        id="interface"
+                        value={formData.interface}
+                        readOnly
+                        className="bg-gray-700/50 border-gray-600 text-gray-300 h-10 mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="allowedAddress" className="text-white">Endereço Permitido</Label>
+                      <Input
+                        id="allowedAddress"
+                        value={formData.allowedAddress}
+                        readOnly
+                        className="bg-gray-700/50 border-gray-600 text-gray-300 h-10 mt-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator className="bg-gray-700" />
+
+                {/* Server Configuration */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-white">Configuração do Servidor</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="endpoint" className="text-white">Endpoint do Servidor</Label>
+                      <Input
+                        id="endpoint"
+                        value={formData.endpoint}
+                        onChange={(e) => handleInputChange('endpoint', e.target.value)}
+                        placeholder="vpn.empresa.com"
+                        className="bg-gray-800 border-gray-600 text-white h-10 mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="port" className="text-white">Porta</Label>
+                      <Input
+                        id="port"
+                        type="number"
+                        value={formData.endpointPort}
+                        onChange={(e) => handleInputChange('endpointPort', parseInt(e.target.value) || 51820)}
+                        className="bg-gray-800 border-gray-600 text-white h-10 mt-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Separator className="bg-gray-700" />
+
+                {/* Client Configuration */}
+                <div className="space-y-4">
+                  <h3 className="text-lg font-semibold text-white">Configuração do Cliente</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <Label htmlFor="dns" className="text-white">DNS do Cliente</Label>
+                      <Input
+                        id="dns"
+                        value={formData.clientDns}
+                        onChange={(e) => handleInputChange('clientDns', e.target.value)}
+                        className="bg-gray-800 border-gray-600 text-white h-10 mt-2"
+                      />
+                    </div>
+                    <div>
+                      <Label htmlFor="clientEndpoint" className="text-white">Endpoint do Cliente</Label>
+                      <Input
+                        id="clientEndpoint"
+                        value={formData.clientEndpoint}
+                        onChange={(e) => handleInputChange('clientEndpoint', e.target.value)}
+                        className="bg-gray-800 border-gray-600 text-white h-10 mt-2"
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                <Button 
+                  type="submit" 
+                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-semibold shadow-lg transform hover:scale-[1.01] transition-all duration-200"
+                  disabled={!formData.selectedPeer}
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Gerar Configuração WireGuard
+                </Button>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Results Panel */}
+        <div className="lg:col-span-1">
+          {generated ? (
+            <div className="space-y-4">
+              {/* QR Code Section */}
+              <Card className="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-gray-700 shadow-xl backdrop-blur-sm">
+                <CardHeader className="text-center pb-3">
+                  <CardTitle className="text-lg text-white flex items-center justify-center">
+                    <QrCode className="w-5 h-5 mr-2 text-green-400" />
+                    QR Code
+                  </CardTitle>
+                  <CardDescription className="text-gray-300 text-sm">
+                    Escaneie para importar
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="text-center">
+                  <div className="bg-white p-4 rounded-xl inline-block shadow-lg">
+                    <div className="w-32 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
+                      <QrCode className="w-16 h-16 text-gray-400" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Configuration File */}
+              <Card className="bg-gradient-to-br from-gray-900/80 to-gray-800/50 border-gray-700 shadow-xl backdrop-blur-sm">
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg text-white">Configuração</CardTitle>
+                  <CardDescription className="text-gray-300 text-sm">
+                    Baixe ou copie o arquivo
+                  </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="bg-gray-900/70 rounded-lg p-3 border border-gray-600">
+                    <pre className="text-xs text-gray-300 whitespace-pre-wrap overflow-x-auto max-h-32">
+                      {configContent}
+                    </pre>
+                  </div>
+                  <div className="space-y-2">
+                    <Button 
+                      onClick={downloadConfig} 
+                      className="w-full bg-blue-600 hover:bg-blue-700 text-white h-10 text-sm"
+                    >
+                      <Download className="w-4 h-4 mr-2" />
+                      Baixar .conf
+                    </Button>
+                    <Button 
+                      onClick={copyToClipboard} 
+                      variant="outline" 
+                      className="w-full border-gray-600 text-gray-300 hover:bg-gray-800 h-10 text-sm"
+                    >
+                      {copied ? <Check className="w-4 h-4 mr-2" /> : <Copy className="w-4 h-4 mr-2" />}
+                      {copied ? 'Copiado!' : 'Copiar'}
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
             </div>
-
-            <Separator className="bg-gray-700" />
-
-            {/* Network Configuration */}
-            <div className="space-y-3">
-              <h3 className="text-base font-semibold text-white">Configuração de Rede</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="interface" className="text-white text-sm">Interface WireGuard</Label>
-                  <Input
-                    id="interface"
-                    value={formData.interface}
-                    readOnly
-                    className="bg-gray-700/50 border-gray-600 text-gray-300 h-8 mt-1 text-sm"
-                  />
+          ) : (
+            <Card className="bg-gradient-to-br from-gray-900/30 to-gray-800/20 border-gray-700/50 shadow-xl backdrop-blur-sm">
+              <CardContent className="flex flex-col items-center justify-center p-8 text-center">
+                <div className="w-16 h-16 bg-gray-800/50 rounded-full flex items-center justify-center mb-4">
+                  <QrCode className="w-8 h-8 text-gray-500" />
                 </div>
-                <div>
-                  <Label htmlFor="allowedAddress" className="text-white text-sm">Endereço Permitido</Label>
-                  <Input
-                    id="allowedAddress"
-                    value={formData.allowedAddress}
-                    readOnly
-                    className="bg-gray-700/50 border-gray-600 text-gray-300 h-8 mt-1 text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Separator className="bg-gray-700" />
-
-            {/* Server Configuration */}
-            <div className="space-y-3">
-              <h3 className="text-base font-semibold text-white">Configuração do Servidor</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="endpoint" className="text-white text-sm">Endpoint do Servidor</Label>
-                  <Input
-                    id="endpoint"
-                    value={formData.endpoint}
-                    onChange={(e) => handleInputChange('endpoint', e.target.value)}
-                    placeholder="vpn.empresa.com"
-                    className="bg-gray-800 border-gray-600 text-white h-8 mt-1 text-sm"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="port" className="text-white text-sm">Porta</Label>
-                  <Input
-                    id="port"
-                    type="number"
-                    value={formData.endpointPort}
-                    onChange={(e) => handleInputChange('endpointPort', parseInt(e.target.value) || 51820)}
-                    className="bg-gray-800 border-gray-600 text-white h-8 mt-1 text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Separator className="bg-gray-700" />
-
-            {/* Client Configuration */}
-            <div className="space-y-3">
-              <h3 className="text-base font-semibold text-white">Configuração do Cliente</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                <div>
-                  <Label htmlFor="dns" className="text-white text-sm">DNS do Cliente</Label>
-                  <Input
-                    id="dns"
-                    value={formData.clientDns}
-                    onChange={(e) => handleInputChange('clientDns', e.target.value)}
-                    className="bg-gray-800 border-gray-600 text-white h-8 mt-1 text-sm"
-                  />
-                </div>
-                <div>
-                  <Label htmlFor="clientEndpoint" className="text-white text-sm">Endpoint do Cliente</Label>
-                  <Input
-                    id="clientEndpoint"
-                    value={formData.clientEndpoint}
-                    onChange={(e) => handleInputChange('clientEndpoint', e.target.value)}
-                    className="bg-gray-800 border-gray-600 text-white h-8 mt-1 text-sm"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <Button 
-              type="submit" 
-              className="w-full h-10 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-semibold shadow-lg transform hover:scale-[1.01] transition-all duration-200"
-              disabled={!formData.selectedPeer}
-            >
-              <Plus className="w-4 h-4 mr-2" />
-              Gerar Configuração WireGuard
-            </Button>
-          </form>
-        </CardContent>
-      </Card>
+                <h3 className="text-lg font-semibold text-gray-400 mb-2">
+                  Aguardando Configuração
+                </h3>
+                <p className="text-gray-500 text-sm">
+                  Selecione um peer e gere a configuração para visualizar o QR Code
+                </p>
+              </CardContent>
+            </Card>
+          )}
+        </div>
+      </div>
     </div>
+  );
+};
 
-    {/* Results Panel */}
-    <div className="lg:col-span-1">
-      {/* (A parte lateral continua igual, ou posso compactá-la também se quiser) */}
-    </div>
-  </div>
-</div>
+export default PeerForm;
