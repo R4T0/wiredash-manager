@@ -1,25 +1,33 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Users, Plus, Download, QrCode, Trash2, Activity, UserCheck, Clock } from 'lucide-react';
 import StatsCard from '../components/StatsCard';
+import CreatePeerModal from '../components/CreatePeerModal';
+import { useWireguardPeers } from '../hooks/useWireguardPeers';
 
 const Peers = () => {
-  const peers = [
-    { id: 1, name: 'client-001', interface: 'wg-main', ip: '10.0.0.10', status: 'online', lastSeen: '2 min ago' },
-    { id: 2, name: 'client-002', interface: 'wg-main', ip: '10.0.0.11', status: 'online', lastSeen: '5 min ago' },
-    { id: 3, name: 'mobile-user', interface: 'wg-mobile-clients', ip: '10.1.0.5', status: 'offline', lastSeen: '2 hours ago' },
-    { id: 4, name: 'branch-office', interface: 'wg-branch-office', ip: '10.2.0.1', status: 'online', lastSeen: '1 min ago' },
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const { peers, isLoading, isCreating, createPeer } = useWireguardPeers();
+
+  // Check if router is Mikrotik
+  const savedConfig = localStorage.getItem('routerConfig');
+  const isMikrotik = savedConfig ? JSON.parse(savedConfig).routerType === 'mikrotik' : false;
+
+  // Fallback data for non-Mikrotik routers or when no data is available
+  const fallbackPeers = [
+    { id: '1', interface: 'wg-main', 'public-key': 'ABC123...', 'allowed-address': '10.0.0.10/32', 'endpoint-address': 'client-001', disabled: false },
+    { id: '2', interface: 'wg-main', 'public-key': 'DEF456...', 'allowed-address': '10.0.0.11/32', 'endpoint-address': 'client-002', disabled: false },
+    { id: '3', interface: 'wg-mobile-clients', 'public-key': 'GHI789...', 'allowed-address': '10.1.0.5/32', 'endpoint-address': 'mobile-user', disabled: true },
+    { id: '4', interface: 'wg-branch-office', 'public-key': 'JKL012...', 'allowed-address': '10.2.0.1/32', 'endpoint-address': 'branch-office', disabled: false },
   ];
 
-  const totalPeers = peers.length;
-  const onlinePeers = peers.filter(peer => peer.status === 'online').length;
-  const recentPeers = peers.filter(peer => {
-    // Simulate recent peers (last 24h)
-    return ['2 min ago', '5 min ago', '1 min ago'].includes(peer.lastSeen);
-  }).length;
+  const displayPeers = isMikrotik && peers.length > 0 ? peers : fallbackPeers;
+  const totalPeers = displayPeers.length;
+  const onlinePeers = displayPeers.filter(peer => !peer.disabled).length;
+  const recentPeers = Math.ceil(totalPeers * 0.6); // Simulate recent peers
 
   const stats = [
     {
@@ -46,18 +54,29 @@ const Peers = () => {
     }
   ];
 
+  const handleCreatePeer = async (data: { interface: string; 'endpoint-address': string }) => {
+    return await createPeer(data);
+  };
+
   return (
     <Layout>
       <div className="space-y-8 animate-fade-in">
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-4xl font-bold text-white mb-2">Gerenciar Peers</h1>
-            <p className="text-gray-400 text-lg">Visualize e gerencie todos os peers WireGuard</p>
+            <p className="text-gray-400 text-lg">
+              {isMikrotik ? 'Visualize e gerencie todos os peers WireGuard do Mikrotik' : 'Visualize e gerencie todos os peers WireGuard'}
+            </p>
           </div>
-          <Button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white shadow-lg">
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Peer
-          </Button>
+          {isMikrotik && (
+            <Button 
+              onClick={() => setIsCreateModalOpen(true)}
+              className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
+            >
+              <Plus className="w-4 h-4 mr-2" />
+              Novo Peer
+            </Button>
+          )}
         </div>
 
         {/* Dashboard Stats */}
@@ -80,55 +99,77 @@ const Peers = () => {
             <CardTitle className="text-white flex items-center">
               <Users className="w-5 h-5 mr-2" />
               Lista de Peers
+              {isMikrotik && (
+                <span className="ml-2 text-xs bg-blue-600 px-2 py-1 rounded">
+                  Mikrotik
+                </span>
+              )}
             </CardTitle>
-            <CardDescription>Todos os peers configurados em suas interfaces</CardDescription>
+            <CardDescription>
+              {isMikrotik ? 'Peers carregados do roteador Mikrotik' : 'Dados de exemplo - configure um roteador Mikrotik para dados reais'}
+            </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-3">
-              {peers.map((peer) => (
-                <div key={peer.id} className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 hover:bg-gray-800/70 transition-colors">
-                  <div className="flex items-center space-x-4 flex-1">
-                    <div className="flex items-center space-x-2">
-                      {peer.status === 'online' ? (
-                        <div className="flex items-center text-green-400">
-                          <Activity className="w-4 h-4" />
-                          <span className="text-xs ml-1 font-medium">Ativo</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center text-red-400">
-                          <Activity className="w-4 h-4" />
-                          <span className="text-xs ml-1 font-medium">Inativo</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="flex-1">
-                      <div className="flex items-center space-x-4">
-                        <div>
-                          <h3 className="font-semibold text-white">{peer.name}</h3>
-                          <p className="text-sm text-gray-400">{peer.interface} • {peer.ip}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-gray-500">Última atividade: {peer.lastSeen}</p>
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-gray-400">Carregando peers...</div>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {displayPeers.map((peer) => (
+                  <div key={peer.id} className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 hover:bg-gray-800/70 transition-colors">
+                    <div className="flex items-center space-x-4 flex-1">
+                      <div className="flex items-center space-x-2">
+                        {!peer.disabled ? (
+                          <div className="flex items-center text-green-400">
+                            <Activity className="w-4 h-4" />
+                            <span className="text-xs ml-1 font-medium">Ativo</span>
+                          </div>
+                        ) : (
+                          <div className="flex items-center text-red-400">
+                            <Activity className="w-4 h-4" />
+                            <span className="text-xs ml-1 font-medium">Inativo</span>
+                          </div>
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-4">
+                          <div>
+                            <h3 className="font-semibold text-white">{peer['endpoint-address'] || `peer-${peer.id}`}</h3>
+                            <p className="text-sm text-gray-400">
+                              {peer.interface} • {peer['allowed-address']}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Chave: {peer['public-key']?.substring(0, 20)}...
+                            </p>
+                          </div>
                         </div>
                       </div>
                     </div>
+                    <div className="flex items-center space-x-1">
+                      <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 h-8 w-8 p-0">
+                        <QrCode className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-green-400 hover:text-green-300 hover:bg-green-600/20 h-8 w-8 p-0">
+                        <Download className="w-4 h-4" />
+                      </Button>
+                      <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-600/20 h-8 w-8 p-0">
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center space-x-1">
-                    <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 h-8 w-8 p-0">
-                      <QrCode className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-green-400 hover:text-green-300 hover:bg-green-600/20 h-8 w-8 p-0">
-                      <Download className="w-4 h-4" />
-                    </Button>
-                    <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-600/20 h-8 w-8 p-0">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </CardContent>
         </Card>
+
+        <CreatePeerModal
+          isOpen={isCreateModalOpen}
+          onClose={() => setIsCreateModalOpen(false)}
+          onSubmit={handleCreatePeer}
+          isCreating={isCreating}
+        />
       </div>
     </Layout>
   );
