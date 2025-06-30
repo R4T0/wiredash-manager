@@ -48,6 +48,8 @@ class BaseRouter(ABC):
                 response = requests.post(url, headers=headers, json=body, timeout=10, verify=False)
             elif method.upper() == 'PUT':
                 response = requests.put(url, headers=headers, json=body, timeout=10, verify=False)
+            elif method.upper() == 'PATCH':
+                response = requests.patch(url, headers=headers, json=body, timeout=10, verify=False)
             elif method.upper() == 'DELETE':
                 response = requests.delete(url, headers=headers, timeout=10, verify=False)
             else:
@@ -106,17 +108,4 @@ class BaseRouter(ABC):
                 'router_type': self.get_router_type()
             }
     
-    @abstractmethod
-    def get_router_type(self):
-        """Retornar o tipo do roteador"""
-        pass
-    
-    @abstractmethod
-    def test_connection(self):
-        """Testar conexão específica para cada tipo de roteador"""
-        pass
-    
-    @abstractmethod
-    def get_default_test_path(self):
-        """Retornar o path padrão para teste de conexão"""
-        pass
+    # ... keep existing code (abstract methods)
