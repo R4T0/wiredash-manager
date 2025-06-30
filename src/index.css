@@ -87,4 +87,8 @@
   .status-offline {
     @apply bg-red-500;
   }
+
+  .status-testing {
+    @apply bg-yellow-500;
+  }
 }
