@@ -239,18 +239,9 @@ const Interfaces = () => {
   return (
     <Layout>
       <div className="space-y-8 animate-fade-in">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Gerenciar Interfaces</h1>
-            <p className="text-gray-400 text-lg">Visualize e gerencie todas as interfaces WireGuard</p>
-          </div>
-          <Button 
-            onClick={() => setIsModalOpen(true)}
-            className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white shadow-lg"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Adicionar Interface
-          </Button>
+        <div>
+          <h1 className="text-4xl font-bold text-white mb-2">Gerenciar Interfaces</h1>
+          <p className="text-gray-400 text-lg">Visualize e gerencie todas as interfaces WireGuard</p>
         </div>
 
         {/* Dashboard Stats */}
@@ -270,16 +261,27 @@ const Interfaces = () => {
 
         <Card className="bg-gray-900/50 border-gray-800">
           <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <Network className="w-5 h-5 mr-2" />
-              Lista de Interfaces WireGuard
-            </CardTitle>
-            <CardDescription>
-              {interfaces.length > 0 
-                ? `${interfaces.length} interface(s) WireGuard encontrada(s)`
-                : 'Nenhuma interface WireGuard configurada'
-              }
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-white flex items-center">
+                  <Network className="w-5 h-5 mr-2" />
+                  Lista de Interfaces WireGuard
+                </CardTitle>
+                <CardDescription>
+                  {interfaces.length > 0 
+                    ? `${interfaces.length} interface(s) WireGuard encontrada(s)`
+                    : 'Nenhuma interface WireGuard configurada'
+                  }
+                </CardDescription>
+              </div>
+              <Button 
+                onClick={() => setIsModalOpen(true)}
+                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Adicionar Interface
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {interfaces.length === 0 ? (
