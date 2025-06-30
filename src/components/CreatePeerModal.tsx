@@ -25,6 +25,13 @@ interface WireguardInterface {
   'listen-port'?: number;
 }
 
+interface WireguardConfig {
+  endpointPadrao: string;
+  portaPadrao: string;
+  rangeIpsPermitidos: string;
+  dnsCliente: string;
+}
+
 const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
   isOpen,
   onClose,
@@ -39,6 +46,126 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
   });
   const [interfaces, setInterfaces] = useState<WireguardInterface[]>([]);
   const [isLoadingInterfaces, setIsLoadingInterfaces] = useState(false);
+  const [wireguardConfig, setWireguardConfig] = useState<WireguardConfig>({
+    endpointPadrao: '',
+    portaPadrao: '',
+    rangeIpsPermitidos: '',
+    dnsCliente: ''
+  });
+  const [existingPeers, setExistingPeers] = useState<any[]>([]);
+
+  // Load WireGuard default configuration
+  useEffect(() => {
+    try {
+      const savedConfig = localStorage.getItem('wireguardConfig');
+      if (savedConfig) {
+        const config = JSON.parse(savedConfig);
+        setWireguardConfig(config);
+        
+        // Set endpoint address from default config
+        if (config.endpointPadrao) {
+          setFormData(prev => ({
+            ...prev,
+            'endpoint-address': config.endpointPadrao
+          }));
+        }
+      }
+    } catch (error) {
+      console.error('Error loading WireGuard config:', error);
+    }
+  }, []);
+
+  // Fetch existing peers to calculate next available IP
+  useEffect(() => {
+    if (isOpen) {
+      fetchExistingPeers();
+    }
+  }, [isOpen]);
+
+  const fetchExistingPeers = async () => {
+    const savedConfig = localStorage.getItem('routerConfig');
+    if (!savedConfig) return;
+
+    const config = JSON.parse(savedConfig);
+    if (config.routerType !== 'mikrotik') return;
+
+    const proxyUrl = 'http://localhost:5000/api/router/proxy';
+
+    const requestBody = {
+      routerType: config.routerType,
+      endpoint: config.endpoint,
+      port: config.port,
+      user: config.user,
+      password: config.password,
+      useHttps: config.useHttps,
+      path: '/rest/interface/wireguard/peers',
+      method: 'GET'
+    };
+
+    try {
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(15000)
+      });
+
+      const responseData = await response.json();
+      
+      if (responseData.success && responseData.data) {
+        const peersData = Array.isArray(responseData.data) ? responseData.data : [];
+        setExistingPeers(peersData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch existing peers:', error);
+    }
+  };
+
+  // Calculate next available IP in the range
+  const getNextAvailableIP = (range: string): string => {
+    if (!range) return '';
+
+    try {
+      // Parse CIDR notation (e.g., "10.0.0.0/24")
+      const [baseIP, subnet] = range.split('/');
+      const ipParts = baseIP.split('.').map(Number);
+      
+      // Get all used IPs from existing peers
+      const usedIPs = new Set<string>();
+      existingPeers.forEach(peer => {
+        if (peer['allowed-address']) {
+          const allowedIP = peer['allowed-address'].split('/')[0];
+          usedIPs.add(allowedIP);
+        }
+      });
+
+      // Find next available IP (starting from x.x.x.10 to avoid common network addresses)
+      for (let i = 10; i < 254; i++) {
+        const testIP = `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.${i}`;
+        if (!usedIPs.has(testIP)) {
+          return `${testIP}/32`;
+        }
+      }
+
+      return `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.10/32`; // fallback
+    } catch (error) {
+      console.error('Error calculating next IP:', error);
+      return '';
+    }
+  };
+
+  // Update allowed address when range changes or peers are loaded
+  useEffect(() => {
+    if (wireguardConfig.rangeIpsPermitidos && existingPeers.length >= 0) {
+      const nextIP = getNextAvailableIP(wireguardConfig.rangeIpsPermitidos);
+      setFormData(prev => ({
+        ...prev,
+        'allowed-address': nextIP
+      }));
+    }
+  }, [wireguardConfig.rangeIpsPermitidos, existingPeers]);
 
   // Fetch WireGuard interfaces when modal opens
   useEffect(() => {
@@ -187,6 +314,11 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
               className="bg-gray-800 border-gray-700 text-white"
               required
             />
+            {wireguardConfig.rangeIpsPermitidos && (
+              <p className="text-xs text-gray-500">
+                Próximo IP disponível no range: {wireguardConfig.rangeIpsPermitidos}
+              </p>
+            )}
           </div>
 
           <div className="space-y-2">
@@ -202,11 +334,16 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
               className="bg-gray-800 border-gray-700 text-white"
               required
             />
+            {wireguardConfig.endpointPadrao && (
+              <p className="text-xs text-gray-500">
+                Configuração padrão: {wireguardConfig.endpointPadrao}
+              </p>
+            )}
           </div>
 
           <div className="bg-gray-800/50 p-3 rounded-lg border border-gray-700">
             <p className="text-sm text-gray-400">
-              <strong>Nota:</strong> A chave pública e porta do endpoint serão gerados automaticamente com base na configuração da interface selecionada.
+              <strong>Nota:</strong> Os campos são preenchidos automaticamente com base nas configurações padrão do WireGuard. A chave pública e porta do endpoint serão gerados automaticamente.
             </p>
           </div>
 
