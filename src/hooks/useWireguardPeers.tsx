@@ -355,7 +355,22 @@ export const useWireguardPeers = () => {
       });
 
       const duration = Date.now() - startTime;
-      const responseData = await response.json();
+      
+      // Handle empty response body for DELETE operations
+      let responseData;
+      const responseText = await response.text();
+      
+      if (responseText) {
+        try {
+          responseData = JSON.parse(responseText);
+        } catch (parseError) {
+          console.error('Failed to parse response as JSON:', parseError);
+          responseData = { success: false, error: 'Invalid response format' };
+        }
+      } else {
+        // Empty response - consider it successful if status is ok
+        responseData = { success: response.ok };
+      }
       
       console.log('Delete peer response:', responseData);
 
@@ -365,11 +380,11 @@ export const useWireguardPeers = () => {
         status: response.status,
         requestHeaders: { 'Content-Type': 'application/json' },
         responseHeaders: Object.fromEntries(response.headers.entries()),
-        responseBody: JSON.stringify(responseData),
+        responseBody: responseText || 'Empty response',
         duration
       });
 
-      if (responseData.success) {
+      if (response.ok && (responseData.success !== false)) {
         toast({
           title: "✅ Peer removido",
           description: `O peer ${peerName} foi removido com sucesso.`,
@@ -382,7 +397,7 @@ export const useWireguardPeers = () => {
         console.error('Failed to delete peer:', responseData);
         toast({
           title: "Erro ao remover peer",
-          description: responseData.data?.detail || responseData.error || "Falha ao remover o peer.",
+          description: responseData?.data?.detail || responseData?.error || "Falha ao remover o peer.",
           variant: "destructive"
         });
         return false;
