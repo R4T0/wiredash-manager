@@ -5,7 +5,6 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Separator } from '@/components/ui/separator';
 import { Plus, Download, QrCode, Copy, Check, Search, Settings, Wifi } from 'lucide-react';
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
@@ -206,8 +205,8 @@ PersistentKeepalive = 25`;
                 Configure os parâmetros para gerar a configuração WireGuard
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-5">
-              <form onSubmit={handleSubmit} className="space-y-5">
+            <CardContent className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
                 {/* Peer Selection */}
                 <div className="space-y-3">
                   <Label className="text-white font-medium flex items-center">
@@ -273,11 +272,8 @@ PersistentKeepalive = 25`;
                   </Popover>
                 </div>
 
-                <Separator className="bg-gray-700" />
-
                 {/* Network Configuration */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-white">Configuração de Rede</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="interface" className="text-white">Interface WireGuard</Label>
@@ -300,11 +296,8 @@ PersistentKeepalive = 25`;
                   </div>
                 </div>
 
-                <Separator className="bg-gray-700" />
-
                 {/* Server Configuration */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-white">Configuração do Servidor</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="endpoint" className="text-white">Endpoint do Servidor</Label>
@@ -329,11 +322,8 @@ PersistentKeepalive = 25`;
                   </div>
                 </div>
 
-                <Separator className="bg-gray-700" />
-
                 {/* Client Configuration */}
                 <div className="space-y-4">
-                  <h3 className="text-lg font-semibold text-white">Configuração do Cliente</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <Label htmlFor="dns" className="text-white">DNS do Cliente</Label>
