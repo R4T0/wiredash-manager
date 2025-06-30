@@ -92,8 +92,9 @@ const PeerForm = () => {
   const generateWireGuardConfig = () => {
     if (!selectedPeerData) return '';
 
-    const clientPrivateKey = 'ABCD1234567890ABCD1234567890ABCD1234567890='; // Simulado
-    const serverPublicKey = selectedPeerData['public-key'] || 'EFGH1234567890EFGH1234567890EFGH1234567890=';
+    // Use the actual private key from the router peer data
+    const clientPrivateKey = selectedPeerData['private-key'] || 'CHAVE_PRIVADA_NAO_ENCONTRADA';
+    const serverPublicKey = selectedPeerData['public-key'] || 'CHAVE_PUBLICA_NAO_ENCONTRADA';
     
     const config = `[Interface]
 PrivateKey = ${clientPrivateKey}
