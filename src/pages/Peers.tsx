@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,14 +6,18 @@ import { Users, Plus, Edit, QrCode, Trash2, Activity, UserCheck, Clock } from 'l
 import StatsCard from '../components/StatsCard';
 import CreatePeerModal from '../components/CreatePeerModal';
 import EditPeerModal from '../components/EditPeerModal';
+import DeletePeerDialog from '../components/DeletePeerDialog';
 import { useWireguardPeers } from '../hooks/useWireguardPeers';
 
 const Peers = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [selectedPeer, setSelectedPeer] = useState(null);
+  const [peerToDelete, setPeerToDelete] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
-  const { peers, isLoading, isCreating, createPeer, fetchPeers } = useWireguardPeers();
+  const [isDeleting, setIsDeleting] = useState(false);
+  const { peers, isLoading, isCreating, createPeer, fetchPeers, deletePeer } = useWireguardPeers();
 
   // Check if router is Mikrotik
   const savedConfig = localStorage.getItem('routerConfig');
@@ -72,6 +75,28 @@ const Peers = () => {
 
   const handleEditSuccess = () => {
     fetchPeers(); // Refresh peers list
+  };
+
+  const handleDeletePeer = (peer: any) => {
+    setPeerToDelete(peer);
+    setIsDeleteDialogOpen(true);
+  };
+
+  const confirmDeletePeer = async () => {
+    if (!peerToDelete) return;
+    
+    setIsDeleting(true);
+    const peerId = peerToDelete.id || peerToDelete['.id'];
+    const peerName = peerToDelete.name || peerToDelete['endpoint-address'] || `peer-${peerId}`;
+    
+    const success = await deletePeer(peerId, peerName);
+    
+    if (success) {
+      setIsDeleteDialogOpen(false);
+      setPeerToDelete(null);
+    }
+    
+    setIsDeleting(false);
   };
 
   // Check if peer is active (not disabled)
@@ -180,7 +205,12 @@ const Peers = () => {
                       >
                         <Edit className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-600/20 h-8 w-8 p-0">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-red-400 hover:text-red-300 hover:bg-red-600/20 h-8 w-8 p-0"
+                        onClick={() => handleDeletePeer(peer)}
+                      >
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
@@ -204,6 +234,14 @@ const Peers = () => {
           onSuccess={handleEditSuccess}
           peer={selectedPeer}
           isUpdating={isUpdating}
+        />
+
+        <DeletePeerDialog
+          isOpen={isDeleteDialogOpen}
+          onClose={() => setIsDeleteDialogOpen(false)}
+          onConfirm={confirmDeletePeer}
+          peerName={peerToDelete?.name || peerToDelete?.['endpoint-address'] || `peer-${peerToDelete?.id || peerToDelete?.['.id']}`}
+          isDeleting={isDeleting}
         />
       </div>
     </Layout>

@@ -228,6 +228,7 @@ export const useWireguardPeers = () => {
         name: peerData.name,
         interface: peerData.interface,
         'public-key': publicKey,
+        'private-key': 'auto',
         'allowed-address': peerData['allowed-address'],
         'endpoint-address': peerData['endpoint-address'],
         'endpoint-port': endpointPort
@@ -306,6 +307,109 @@ export const useWireguardPeers = () => {
     }
   }, [toast, addLog, fetchPeers]);
 
+  const deletePeer = useCallback(async (peerId: string, peerName: string) => {
+    const savedConfig = localStorage.getItem('routerConfig');
+    if (!savedConfig) {
+      toast({
+        title: "Configuração não encontrada",
+        description: "Configure a conexão com o roteador primeiro.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    const config = JSON.parse(savedConfig);
+    if (config.routerType !== 'mikrotik') {
+      toast({
+        title: "Roteador não suportado",
+        description: "Esta funcionalidade é específica para roteadores Mikrotik.",
+        variant: "destructive"
+      });
+      return false;
+    }
+
+    const startTime = Date.now();
+    const proxyUrl = 'http://localhost:5000/api/router/proxy';
+
+    const requestBody = {
+      routerType: config.routerType,
+      endpoint: config.endpoint,
+      port: config.port,
+      user: config.user,
+      password: config.password,
+      useHttps: config.useHttps,
+      path: `/rest/interface/wireguard/peers/${peerId}`,
+      method: 'DELETE'
+    };
+
+    try {
+      console.log('Deleting peer...', requestBody);
+
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(15000)
+      });
+
+      const duration = Date.now() - startTime;
+      const responseData = await response.json();
+      
+      console.log('Delete peer response:', responseData);
+
+      addLog({
+        method: 'DELETE',
+        url: `/rest/interface/wireguard/peers/${peerId}`,
+        status: response.status,
+        requestHeaders: { 'Content-Type': 'application/json' },
+        responseHeaders: Object.fromEntries(response.headers.entries()),
+        responseBody: JSON.stringify(responseData),
+        duration
+      });
+
+      if (responseData.success) {
+        toast({
+          title: "✅ Peer removido",
+          description: `O peer ${peerName} foi removido com sucesso.`,
+        });
+        
+        // Refresh peers list
+        await fetchPeers();
+        return true;
+      } else {
+        console.error('Failed to delete peer:', responseData);
+        toast({
+          title: "Erro ao remover peer",
+          description: responseData.data?.detail || responseData.error || "Falha ao remover o peer.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    } catch (error) {
+      const duration = Date.now() - startTime;
+      const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
+      
+      console.error('Failed to delete peer:', error);
+      
+      addLog({
+        method: 'DELETE',
+        url: `/rest/interface/wireguard/peers/${peerId}`,
+        requestHeaders: { 'Content-Type': 'application/json' },
+        error: errorMessage,
+        duration
+      });
+
+      toast({
+        title: "Erro de conexão",
+        description: "Não foi possível remover o peer do roteador.",
+        variant: "destructive"
+      });
+      return false;
+    }
+  }, [toast, addLog, fetchPeers]);
+
   useEffect(() => {
     fetchPeers();
   }, [fetchPeers]);
@@ -315,6 +419,7 @@ export const useWireguardPeers = () => {
     isLoading,
     isCreating,
     fetchPeers,
-    createPeer
+    createPeer,
+    deletePeer
   };
 };
