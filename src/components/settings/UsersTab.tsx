@@ -3,32 +3,23 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Users, Edit, Trash2 } from 'lucide-react';
-
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  createdAt: string;
-}
+import { Plus, Users, Edit, Trash2, UserX } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import EditUserModal from './EditUserModal';
 
 const UsersTab = () => {
-  const [users, setUsers] = useState<User[]>([
-    {
-      id: '1',
-      name: 'Admin User',
-      email: 'admin@example.com',
-      createdAt: '2024-01-15'
-    }
-  ]);
-  
+  const { users, addUser, updateUser, deleteUser } = useAuth();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [editingUser, setEditingUser] = useState<any>(null);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [newUser, setNewUser] = useState({
     name: '',
     email: '',
-    password: ''
+    password: '',
+    enabled: true
   });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -47,22 +38,26 @@ const UsersTab = () => {
       return;
     }
 
-    const user: User = {
-      id: Date.now().toString(),
-      name: newUser.name,
-      email: newUser.email,
-      createdAt: new Date().toISOString().split('T')[0]
-    };
-
-    setUsers(prev => [...prev, user]);
-    setNewUser({ name: '', email: '', password: '' });
+    addUser(newUser);
+    setNewUser({ name: '', email: '', password: '', enabled: true });
     setIsDialogOpen(false);
     alert('Usuário cadastrado com sucesso!');
   };
 
+  const handleEditUser = (user: any) => {
+    setEditingUser(user);
+    setIsEditModalOpen(true);
+  };
+
+  const handleToggleUser = (userId: string, enabled: boolean) => {
+    updateUser(userId, { enabled });
+    alert(`Usuário ${enabled ? 'ativado' : 'desativado'} com sucesso!`);
+  };
+
   const handleDeleteUser = (userId: string) => {
     if (confirm('Tem certeza que deseja excluir este usuário?')) {
-      setUsers(prev => prev.filter(user => user.id !== userId));
+      deleteUser(userId);
+      alert('Usuário excluído com sucesso!');
     }
   };
 
@@ -130,6 +125,17 @@ const UsersTab = () => {
                 />
               </div>
               
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="enabled"
+                  checked={newUser.enabled}
+                  onCheckedChange={(checked) => setNewUser(prev => ({ ...prev, enabled: checked }))}
+                />
+                <Label htmlFor="enabled" className="text-gray-300">
+                  Usuário ativo
+                </Label>
+              </div>
+              
               <div className="flex justify-end space-x-2 pt-4">
                 <Button
                   type="button"
@@ -167,18 +173,35 @@ const UsersTab = () => {
             {users.map((user) => (
               <div
                 key={user.id}
-                className="flex items-center justify-between p-4 bg-gray-700/30 rounded-lg border border-gray-600"
+                className={`flex items-center justify-between p-4 rounded-lg border ${
+                  user.enabled 
+                    ? 'bg-gray-700/30 border-gray-600' 
+                    : 'bg-red-900/20 border-red-800'
+                }`}
               >
                 <div className="space-y-1">
-                  <h3 className="font-medium text-white">{user.name}</h3>
+                  <div className="flex items-center space-x-2">
+                    <h3 className="font-medium text-white">{user.name}</h3>
+                    {!user.enabled && (
+                      <UserX className="w-4 h-4 text-red-400" />
+                    )}
+                  </div>
                   <p className="text-sm text-gray-400">{user.email}</p>
                   <p className="text-xs text-gray-500">Cadastrado em: {user.createdAt}</p>
+                  <p className={`text-xs ${user.enabled ? 'text-green-400' : 'text-red-400'}`}>
+                    Status: {user.enabled ? 'Ativo' : 'Desativado'}
+                  </p>
                 </div>
                 
-                <div className="flex space-x-2">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    checked={user.enabled}
+                    onCheckedChange={(checked) => handleToggleUser(user.id, checked)}
+                  />
                   <Button
                     size="sm"
                     variant="outline"
+                    onClick={() => handleEditUser(user)}
                     className="border-gray-600 text-gray-300 hover:bg-gray-700"
                   >
                     <Edit className="w-4 h-4" />
@@ -197,6 +220,15 @@ const UsersTab = () => {
           </div>
         </CardContent>
       </Card>
+
+      <EditUserModal
+        user={editingUser}
+        isOpen={isEditModalOpen}
+        onClose={() => {
+          setIsEditModalOpen(false);
+          setEditingUser(null);
+        }}
+      />
     </div>
   );
 };

@@ -1,7 +1,7 @@
-
 from .base import BaseRouter
 import requests
 import json
+from datetime import datetime
 
 class PfsenseRouter(BaseRouter):
     """Classe específica para roteadores Pfsense"""
