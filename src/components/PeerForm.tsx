@@ -6,11 +6,14 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Separator } from '@/components/ui/separator';
-import { Plus, Download, QrCode, Copy, Check } from 'lucide-react';
+import { Plus, Download, QrCode, Copy, Check, Search } from 'lucide-react';
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from '@/components/ui/command';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
+import { useWireguardPeers } from '@/hooks/useWireguardPeers';
 
 interface PeerFormData {
-  name: string;
+  selectedPeer: string;
   interface: string;
   endpoint: string;
   endpointPort: number;
@@ -21,8 +24,12 @@ interface PeerFormData {
 
 const PeerForm = () => {
   const { toast } = useToast();
+  const { peers, isLoading } = useWireguardPeers();
+  const [open, setOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState('');
+  
   const [formData, setFormData] = useState<PeerFormData>({
-    name: '',
+    selectedPeer: '',
     interface: '',
     endpoint: '',
     endpointPort: 51820,
@@ -43,20 +50,30 @@ const PeerForm = () => {
   const [configContent, setConfigContent] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const generateNextIP = () => {
-    const baseIP = '10.0.0.';
-    const nextNum = Math.floor(Math.random() * 254) + 2;
-    return `${baseIP}${nextNum}/32`;
-  };
+  // Filter peers based on search
+  const filteredPeers = peers.filter(peer => {
+    const peerName = peer.name || peer['endpoint-address'] || `peer-${peer.id || peer['.id']}`;
+    return peerName.toLowerCase().includes(searchValue.toLowerCase());
+  });
 
+  // Get selected peer data
+  const selectedPeerData = peers.find(peer => {
+    const peerId = peer.id || peer['.id'];
+    return peerId === formData.selectedPeer;
+  });
+
+  // Update form data when peer is selected
   useEffect(() => {
-    if (formData.name) {
+    if (selectedPeerData) {
       setFormData(prev => ({
         ...prev,
-        allowedAddress: generateNextIP()
+        interface: selectedPeerData.interface || '',
+        allowedAddress: selectedPeerData['allowed-address'] || '',
+        endpoint: selectedPeerData['endpoint-address'] || '',
+        endpointPort: selectedPeerData['endpoint-port'] || 51820
       }));
     }
-  }, [formData.name]);
+  }, [selectedPeerData]);
 
   const handleInputChange = (field: keyof PeerFormData, value: string | number) => {
     setFormData(prev => ({
@@ -65,9 +82,19 @@ const PeerForm = () => {
     }));
   };
 
+  const handlePeerSelect = (peerId: string) => {
+    setFormData(prev => ({
+      ...prev,
+      selectedPeer: peerId
+    }));
+    setOpen(false);
+  };
+
   const generateWireGuardConfig = () => {
+    if (!selectedPeerData) return '';
+
     const clientPrivateKey = 'ABCD1234567890ABCD1234567890ABCD1234567890='; // Simulado
-    const serverPublicKey = 'EFGH1234567890EFGH1234567890EFGH1234567890='; // Simulado
+    const serverPublicKey = selectedPeerData['public-key'] || 'EFGH1234567890EFGH1234567890EFGH1234567890=';
     
     const config = `[Interface]
 PrivateKey = ${clientPrivateKey}
@@ -86,10 +113,10 @@ PersistentKeepalive = 25`;
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.interface || !formData.endpoint) {
+    if (!formData.selectedPeer || !selectedPeerData) {
       toast({
         title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
+        description: "Selecione um peer para gerar a configuração",
         variant: "destructive"
       });
       return;
@@ -111,11 +138,12 @@ PersistentKeepalive = 25`;
   };
 
   const downloadConfig = () => {
+    const peerName = selectedPeerData?.name || selectedPeerData?.['endpoint-address'] || 'peer-config';
     const blob = new Blob([configContent], { type: 'text/plain' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${formData.name}.conf`;
+    a.download = `${peerName}.conf`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -138,11 +166,16 @@ PersistentKeepalive = 25`;
     });
   };
 
+  const getSelectedPeerName = () => {
+    if (!selectedPeerData) return "Selecione um peer";
+    return selectedPeerData.name || selectedPeerData['endpoint-address'] || `peer-${selectedPeerData.id || selectedPeerData['.id']}`;
+  };
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 animate-fade-in">
       <div>
-        <h1 className="text-4xl font-bold text-white mb-2">Gerar Configuração</h1>
-        <p className="text-gray-400 text-lg">Crie um novo peer WireGuard para seu servidor Mikrotik</p>
+        <h1 className="text-4xl font-bold text-white mb-2">Gerenciar Configurações</h1>
+        <p className="text-gray-400 text-lg">Selecione um peer existente para gerar sua configuração</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
@@ -151,45 +184,85 @@ PersistentKeepalive = 25`;
           <CardHeader>
             <CardTitle className="text-white flex items-center">
               <Plus className="w-5 h-5 mr-2" />
-              Novo Peer
+              Configuração do Peer
             </CardTitle>
-            <CardDescription>Preencha os dados para gerar a configuração</CardDescription>
+            <CardDescription>Selecione um peer para gerar a configuração</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-6">
-              {/* Nome */}
+              {/* Seleção de Peer */}
               <div className="space-y-2">
-                <Label htmlFor="name" className="text-white">Nome do Peer *</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => handleInputChange('name', e.target.value)}
-                  placeholder="ex: client-001"
-                  className="bg-gray-800 border-gray-700 text-white"
-                />
+                <Label className="text-white">Selecionar Peer *</Label>
+                <Popover open={open} onOpenChange={setOpen}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={open}
+                      className="w-full justify-between bg-gray-800 border-gray-700 text-white hover:bg-gray-700"
+                      disabled={isLoading}
+                    >
+                      {isLoading ? "Carregando peers..." : getSelectedPeerName()}
+                      <Search className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0 bg-gray-800 border-gray-700">
+                    <Command className="bg-gray-800">
+                      <CommandInput 
+                        placeholder="Buscar peer..." 
+                        className="text-white"
+                        value={searchValue}
+                        onValueChange={setSearchValue}
+                      />
+                      <CommandList>
+                        <CommandEmpty className="text-gray-400">Nenhum peer encontrado.</CommandEmpty>
+                        <CommandGroup>
+                          {filteredPeers.map((peer) => {
+                            const peerId = peer.id || peer['.id'];
+                            const peerName = peer.name || peer['endpoint-address'] || `peer-${peerId}`;
+                            const isActive = peer.disabled === 'false' || peer.disabled === false || !peer.disabled;
+                            
+                            return (
+                              <CommandItem
+                                key={peerId}
+                                value={peerId}
+                                onSelect={() => handlePeerSelect(peerId)}
+                                className="text-white hover:bg-gray-700 cursor-pointer"
+                              >
+                                <div className="flex items-center space-x-2 w-full">
+                                  <div className={`w-2 h-2 rounded-full ${isActive ? 'bg-green-400' : 'bg-red-400'}`} />
+                                  <div className="flex-1">
+                                    <div className="font-medium">{peerName}</div>
+                                    <div className="text-xs text-gray-400">
+                                      {peer.interface} • {peer['allowed-address']}
+                                    </div>
+                                  </div>
+                                </div>
+                              </CommandItem>
+                            );
+                          })}
+                        </CommandGroup>
+                      </CommandList>
+                    </Command>
+                  </PopoverContent>
+                </Popover>
               </div>
 
-              {/* Interface */}
+              {/* Interface - Read Only */}
               <div className="space-y-2">
-                <Label htmlFor="interface" className="text-white">Interface WireGuard *</Label>
-                <Select value={formData.interface} onValueChange={(value) => handleInputChange('interface', value)}>
-                  <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
-                    <SelectValue placeholder="Selecione uma interface" />
-                  </SelectTrigger>
-                  <SelectContent className="bg-gray-800 border-gray-700">
-                    {interfaces.map((iface) => (
-                      <SelectItem key={iface} value={iface} className="text-white hover:bg-gray-700">
-                        {iface}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
+                <Label htmlFor="interface" className="text-white">Interface WireGuard</Label>
+                <Input
+                  id="interface"
+                  value={formData.interface}
+                  readOnly
+                  className="bg-gray-700 border-gray-600 text-gray-300"
+                />
               </div>
 
               {/* Endpoint */}
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label htmlFor="endpoint" className="text-white">Endpoint *</Label>
+                  <Label htmlFor="endpoint" className="text-white">Endpoint</Label>
                   <Input
                     id="endpoint"
                     value={formData.endpoint}
@@ -210,15 +283,14 @@ PersistentKeepalive = 25`;
                 </div>
               </div>
 
-              {/* Endereço Permitido */}
+              {/* Endereço Permitido - Read Only */}
               <div className="space-y-2">
                 <Label htmlFor="allowedAddress" className="text-white">Endereço Permitido</Label>
                 <Input
                   id="allowedAddress"
                   value={formData.allowedAddress}
-                  onChange={(e) => handleInputChange('allowedAddress', e.target.value)}
-                  placeholder="Gerado automaticamente"
-                  className="bg-gray-800 border-gray-700 text-white"
+                  readOnly
+                  className="bg-gray-700 border-gray-600 text-gray-300"
                 />
               </div>
 
@@ -247,6 +319,7 @@ PersistentKeepalive = 25`;
               <Button 
                 type="submit" 
                 className="w-full bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white shadow-lg"
+                disabled={!formData.selectedPeer}
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Gerar Configuração
