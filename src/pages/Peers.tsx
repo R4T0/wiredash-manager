@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -7,14 +8,17 @@ import StatsCard from '../components/StatsCard';
 import CreatePeerModal from '../components/CreatePeerModal';
 import EditPeerModal from '../components/EditPeerModal';
 import DeletePeerDialog from '../components/DeletePeerDialog';
+import QRCodeModal from '../components/QRCodeModal';
 import { useWireguardPeers } from '../hooks/useWireguardPeers';
 
 const Peers = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
+  const [isQRCodeModalOpen, setIsQRCodeModalOpen] = useState(false);
   const [selectedPeer, setSelectedPeer] = useState(null);
   const [peerToDelete, setPeerToDelete] = useState(null);
+  const [peerForQRCode, setPeerForQRCode] = useState(null);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const { peers, isLoading, isCreating, createPeer, fetchPeers, deletePeer } = useWireguardPeers();
@@ -80,6 +84,11 @@ const Peers = () => {
   const handleDeletePeer = (peer: any) => {
     setPeerToDelete(peer);
     setIsDeleteDialogOpen(true);
+  };
+
+  const handleShowQRCode = (peer: any) => {
+    setPeerForQRCode(peer);
+    setIsQRCodeModalOpen(true);
   };
 
   const confirmDeletePeer = async () => {
@@ -194,7 +203,12 @@ const Peers = () => {
                       </div>
                     </div>
                     <div className="flex items-center space-x-1">
-                      <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 h-8 w-8 p-0">
+                      <Button 
+                        variant="ghost" 
+                        size="sm" 
+                        className="text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 h-8 w-8 p-0"
+                        onClick={() => handleShowQRCode(peer)}
+                      >
                         <QrCode className="w-4 h-4" />
                       </Button>
                       <Button 
@@ -242,6 +256,12 @@ const Peers = () => {
           onConfirm={confirmDeletePeer}
           peerName={peerToDelete?.name || peerToDelete?.['endpoint-address'] || `peer-${peerToDelete?.id || peerToDelete?.['.id']}`}
           isDeleting={isDeleting}
+        />
+
+        <QRCodeModal
+          isOpen={isQRCodeModalOpen}
+          onClose={() => setIsQRCodeModalOpen(false)}
+          peer={peerForQRCode}
         />
       </div>
     </Layout>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +9,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { useWireguardPeers } from '@/hooks/useWireguardPeers';
+import QRCode from 'qrcode';
 
 interface PeerFormData {
   selectedPeer: string;
@@ -109,6 +109,23 @@ PersistentKeepalive = 25`;
     return config;
   };
 
+  const generateQRCode = async (configText: string) => {
+    try {
+      const qrCodeDataUrl = await QRCode.toDataURL(configText, {
+        width: 200,
+        margin: 2,
+        color: {
+          dark: '#000000',
+          light: '#FFFFFF'
+        }
+      });
+      return qrCodeDataUrl;
+    } catch (error) {
+      console.error('Erro ao gerar QR Code:', error);
+      return '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -124,9 +141,9 @@ PersistentKeepalive = 25`;
     const config = generateWireGuardConfig();
     setConfigContent(config);
     
-    // Simular geração de QR Code
-    const qrData = `data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==`;
-    setQrCodeUrl(qrData);
+    // Gerar QR Code real
+    const qrDataUrl = await generateQRCode(config);
+    setQrCodeUrl(qrDataUrl);
     
     setGenerated(true);
     
@@ -376,9 +393,17 @@ PersistentKeepalive = 25`;
                 </CardHeader>
                 <CardContent className="text-center">
                   <div className="bg-white p-4 rounded-xl inline-block shadow-lg">
-                    <div className="w-32 h-32 bg-gray-200 rounded-lg flex items-center justify-center">
-                      <QrCode className="w-16 h-16 text-gray-400" />
-                    </div>
+                    {qrCodeUrl ? (
+                      <img 
+                        src={qrCodeUrl} 
+                        alt="QR Code WireGuard" 
+                        className="w-40 h-40 rounded-lg"
+                      />
+                    ) : (
+                      <div className="w-40 h-40 bg-gray-200 rounded-lg flex items-center justify-center">
+                        <QrCode className="w-16 h-16 text-gray-400" />
+                      </div>
+                    )}
                   </div>
                 </CardContent>
               </Card>
