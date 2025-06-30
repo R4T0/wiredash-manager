@@ -1,0 +1,27 @@
+
+version: '3.8'
+
+services:
+  backend:
+    build: ./backend
+    container_name: wireguard-backend
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+    networks:
+      - wireguard-network
+
+  frontend:
+    build: .
+    container_name: wireguard-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+    networks:
+      - wireguard-network
+
+networks:
+  wireguard-network:
+    driver: bridge
