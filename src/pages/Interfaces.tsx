@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button';
 import { Network, Plus, Edit, Trash2, Power, PowerOff, Activity, Clock, CheckCircle } from 'lucide-react';
 import StatsCard from '../components/StatsCard';
+import WireGuardInterfaceModal from '../components/WireGuardInterfaceModal';
 import { useToast } from '@/hooks/use-toast';
 
 interface WireGuardInterface {
@@ -21,6 +22,8 @@ interface WireGuardInterface {
 const Interfaces = () => {
   const [interfaces, setInterfaces] = useState<WireGuardInterface[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchInterfaces = async () => {
@@ -104,6 +107,77 @@ const Interfaces = () => {
     }
   };
 
+  const handleDeleteInterface = async (interfaceId: string, interfaceName: string) => {
+    if (!confirm(`Tem certeza que deseja deletar a interface ${interfaceName}?`)) {
+      return;
+    }
+
+    setDeletingId(interfaceId);
+
+    try {
+      const savedConfig = localStorage.getItem('routerConfig');
+      if (!savedConfig) {
+        toast({
+          title: "Configuração não encontrada",
+          description: "Configure a conexão com o roteador primeiro.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const config = JSON.parse(savedConfig);
+      const proxyUrl = 'http://localhost:5000/api/router/proxy';
+      
+      const requestBody = {
+        routerType: config.routerType || 'mikrotik',
+        endpoint: config.endpoint,
+        port: config.port,
+        user: config.user,
+        password: config.password,
+        useHttps: config.useHttps,
+        path: `/rest/interface/wireguard/${interfaceId}`,
+        method: 'DELETE'
+      };
+
+      console.log('Deleting WireGuard interface...', requestBody);
+
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(15000)
+      });
+
+      const responseData = await response.json();
+      console.log('Delete interface response:', responseData);
+
+      if (responseData.success && (responseData.status === 200 || responseData.status === 204)) {
+        toast({
+          title: "Interface deletada",
+          description: `Interface ${interfaceName} foi deletada com sucesso.`,
+        });
+        fetchInterfaces(); // Refresh the list
+      } else {
+        toast({
+          title: "Erro ao deletar interface",
+          description: responseData.error || "Falha ao deletar a interface.",
+          variant: "destructive"
+        });
+      }
+    } catch (error) {
+      console.error('Error deleting interface:', error);
+      toast({
+        title: "Erro de conexão",
+        description: "Não foi possível conectar ao backend.",
+        variant: "destructive"
+      });
+    } finally {
+      setDeletingId(null);
+    }
+  };
+
   useEffect(() => {
     fetchInterfaces();
   }, []);
@@ -157,7 +231,10 @@ const Interfaces = () => {
             <h1 className="text-4xl font-bold text-white mb-2">Gerenciar Interfaces</h1>
             <p className="text-gray-400 text-lg">Visualize e gerencie todas as interfaces WireGuard</p>
           </div>
-          <Button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white shadow-lg">
+          <Button 
+            onClick={() => setIsModalOpen(true)}
+            className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white shadow-lg"
+          >
             <Plus className="w-4 h-4 mr-2" />
             Adicionar Interface
           </Button>
@@ -203,6 +280,7 @@ const Interfaces = () => {
                 {interfaces.map((iface) => {
                   const isRunning = iface.running === 'true';
                   const isEnabled = iface.disabled === 'false';
+                  const isDeleting = deletingId === iface['.id'];
                   
                   return (
                     <div key={iface['.id']} className="flex items-center justify-between p-4 bg-gray-800/50 rounded-lg border border-gray-700/50 hover:bg-gray-800/70 transition-colors">
@@ -251,7 +329,13 @@ const Interfaces = () => {
                             <Power className="w-4 h-4" />
                           </Button>
                         )}
-                        <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-600/20 h-8 w-8 p-0">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-red-400 hover:text-red-300 hover:bg-red-600/20 h-8 w-8 p-0"
+                          onClick={() => handleDeleteInterface(iface['.id'], iface.name)}
+                          disabled={isDeleting}
+                        >
                           <Trash2 className="w-4 h-4" />
                         </Button>
                       </div>
@@ -262,6 +346,12 @@ const Interfaces = () => {
             )}
           </CardContent>
         </Card>
+
+        <WireGuardInterfaceModal
+          isOpen={isModalOpen}
+          onClose={() => setIsModalOpen(false)}
+          onSuccess={fetchInterfaces}
+        />
       </div>
     </Layout>
   );
