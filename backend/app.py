@@ -1,4 +1,3 @@
-
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 import json
@@ -6,7 +5,7 @@ from datetime import datetime
 import logging
 from routers.mikrotik import MikrotikRouter
 from routers.opnsense import OPNsenseRouter
-from routers.unifi import UnifiRouter
+from routers.pfsense import PfsenseRouter
 
 # Configurar logging
 logging.basicConfig(level=logging.INFO)
@@ -19,7 +18,7 @@ CORS(app)  # Permitir CORS para todas as rotas
 ROUTER_CLASSES = {
     'mikrotik': MikrotikRouter,
     'opnsense': OPNsenseRouter,
-    'unifi': UnifiRouter
+    'pfsense': PfsenseRouter
 }
 
 @app.route('/health', methods=['GET'])
