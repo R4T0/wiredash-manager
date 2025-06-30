@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -28,11 +27,52 @@ const Peers = () => {
   const isMikrotik = savedConfig ? JSON.parse(savedConfig).routerType === 'mikrotik' : false;
 
   // Fallback data for non-Mikrotik routers or when no data is available
+  // Include private-key for demonstration purposes only
   const fallbackPeers = [
-    { id: '1', name: 'Cliente 001', interface: 'wg-main', 'public-key': 'ABC123...', 'allowed-address': '10.0.0.10/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51820, disabled: 'false' },
-    { id: '2', name: 'Cliente 002', interface: 'wg-main', 'public-key': 'DEF456...', 'allowed-address': '10.0.0.11/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51820, disabled: 'false' },
-    { id: '3', name: 'Mobile User', interface: 'wg-mobile-clients', 'public-key': 'GHI789...', 'allowed-address': '10.1.0.5/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51821, disabled: 'true' },
-    { id: '4', name: 'Branch Office', interface: 'wg-branch-office', 'public-key': 'JKL012...', 'allowed-address': '10.2.0.1/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51822, disabled: 'false' },
+    { 
+      id: '1', 
+      name: 'Cliente 001', 
+      interface: 'wg-main', 
+      'public-key': 'ABC123...', 
+      'private-key': 'XYZ789ABCD1234567890EFGH1234567890IJKL=',
+      'allowed-address': '10.0.0.10/32', 
+      'endpoint-address': 'vpn.stacasa.local', 
+      'endpoint-port': 51820, 
+      disabled: 'false' 
+    },
+    { 
+      id: '2', 
+      name: 'Cliente 002', 
+      interface: 'wg-main', 
+      'public-key': 'DEF456...', 
+      'private-key': 'MNO345PQRS6789012345TUVW6789012345XYZA=',
+      'allowed-address': '10.0.0.11/32', 
+      'endpoint-address': 'vpn.stacasa.local', 
+      'endpoint-port': 51820, 
+      disabled: 'false' 
+    },
+    { 
+      id: '3', 
+      name: 'Mobile User', 
+      interface: 'wg-mobile-clients', 
+      'public-key': 'GHI789...', 
+      'private-key': 'BCD901EFGH2345678901IJKL2345678901MNOP=',
+      'allowed-address': '10.1.0.5/32', 
+      'endpoint-address': 'vpn.stacasa.local', 
+      'endpoint-port': 51821, 
+      disabled: 'true' 
+    },
+    { 
+      id: '4', 
+      name: 'Branch Office', 
+      interface: 'wg-branch-office', 
+      'public-key': 'JKL012...', 
+      'private-key': 'QRS567TUVW8901234567XYZA8901234567BCDE=',
+      'allowed-address': '10.2.0.1/32', 
+      'endpoint-address': 'vpn.stacasa.local', 
+      'endpoint-port': 51822, 
+      disabled: 'false' 
+    },
   ];
 
   const displayPeers = isMikrotik && peers.length > 0 ? peers : fallbackPeers;

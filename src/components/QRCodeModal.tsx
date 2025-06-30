@@ -19,8 +19,9 @@ const QRCodeModal = ({ isOpen, onClose, peer }: QRCodeModalProps) => {
   const [copied, setCopied] = useState(false);
 
   const generateWireGuardConfig = (peerData: any) => {
-    const clientPrivateKey = 'ABCD1234567890ABCD1234567890ABCD1234567890='; // Simulado
-    const serverPublicKey = peerData['public-key'] || 'EFGH1234567890EFGH1234567890EFGH1234567890=';
+    // Use the actual private key from the router peer data
+    const clientPrivateKey = peerData['private-key'] || 'CHAVE_PRIVADA_NAO_ENCONTRADA';
+    const serverPublicKey = peerData['public-key'] || 'CHAVE_PUBLICA_NAO_ENCONTRADA';
     
     const config = `[Interface]
 PrivateKey = ${clientPrivateKey}

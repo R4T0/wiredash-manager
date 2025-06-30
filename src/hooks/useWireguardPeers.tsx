@@ -8,6 +8,7 @@ interface WireguardPeer {
   name?: string;
   interface: string;
   'public-key': string;
+  'private-key'?: string;
   'allowed-address': string;
   'endpoint-address': string;
   'endpoint-port'?: number;
@@ -228,7 +229,7 @@ export const useWireguardPeers = () => {
         name: peerData.name,
         interface: peerData.interface,
         'public-key': publicKey,
-        'private-key': 'auto',
+        'private-key': '', // Let Mikrotik generate the private key
         'allowed-address': peerData['allowed-address'],
         'endpoint-address': peerData['endpoint-address'],
         'endpoint-port': endpointPort
