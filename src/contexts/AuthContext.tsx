@@ -42,10 +42,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        // Check for saved current user
+        // Check for saved current user first
         const savedCurrentUser = localStorage.getItem('current_user');
         if (savedCurrentUser) {
-          setCurrentUser(JSON.parse(savedCurrentUser));
+          try {
+            const parsedUser = JSON.parse(savedCurrentUser);
+            setCurrentUser(parsedUser);
+            console.log('User restored from localStorage:', parsedUser.email);
+          } catch (error) {
+            console.error('Error parsing saved user:', error);
+            localStorage.removeItem('current_user');
+          }
         }
 
         // Load users from API, with fallback to localStorage
@@ -102,6 +109,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const user = response.data;
         setCurrentUser(user);
         localStorage.setItem('current_user', JSON.stringify(user));
+        console.log('User logged in successfully:', user.email);
         return true;
       }
       return false;
@@ -112,6 +120,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (user) {
         setCurrentUser(user);
         localStorage.setItem('current_user', JSON.stringify(user));
+        console.log('User logged in via localStorage fallback:', user.email);
         return true;
       }
       return false;
@@ -119,6 +128,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
+    console.log('User logged out');
     setCurrentUser(null);
     localStorage.removeItem('current_user');
   };

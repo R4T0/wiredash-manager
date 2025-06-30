@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, Settings, Network, QrCode, Plus } from 'lucide-react';
@@ -13,7 +12,6 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
-  SidebarTrigger,
   useSidebar,
 } from '@/components/ui/sidebar';
 
@@ -131,7 +129,7 @@ const AppSidebar = () => {
   return (
     <Sidebar className="border-r border-gray-800">
       <SidebarHeader className="border-b border-gray-800">
-        <div className="flex items-center justify-between p-4">
+        <div className="flex items-center p-4">
           <div className="flex items-center space-x-3">
             <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
               <img 
@@ -147,7 +145,6 @@ const AppSidebar = () => {
               </div>
             )}
           </div>
-          <SidebarTrigger className="text-gray-400 hover:text-white" />
         </div>
       </SidebarHeader>
 
