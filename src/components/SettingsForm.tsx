@@ -2,7 +2,7 @@ import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Settings, Router, Shield, Users, FileText, Activity } from 'lucide-react';
-import MikrotikConnectionTab from './settings/MikrotikConnectionTab';
+import ConnectionTab from './settings/ConnectionTab';
 import WireGuardTab from './settings/WireGuardTab';
 import UsersTab from './settings/UsersTab';
 import DiagnosticTab from './settings/DiagnosticTab';
@@ -62,7 +62,7 @@ const SettingsForm = () => {
           </TabsList>
 
           <TabsContent value="mikrotik">
-            <MikrotikConnectionTab />
+            <ConnectionTab />
           </TabsContent>
 
           <TabsContent value="wireguard">

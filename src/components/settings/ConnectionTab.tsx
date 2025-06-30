@@ -1,10 +1,9 @@
-
 import React, { useState } from 'react';
 import { useRouterConnection } from '@/hooks/useRouterConnection';
 import RouterTypeSelector from './RouterTypeSelector';
 import ConnectionForm from './ConnectionForm';
 
-const MikrotikConnectionTab = () => {
+const ConnectionTab = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const {
     formData,
@@ -51,4 +50,4 @@ const MikrotikConnectionTab = () => {
   );
 };
 
-export default MikrotikConnectionTab;
+export default ConnectionTab;
