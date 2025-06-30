@@ -18,10 +18,10 @@ const Peers = () => {
 
   // Fallback data for non-Mikrotik routers or when no data is available
   const fallbackPeers = [
-    { id: '1', interface: 'wg-main', 'public-key': 'ABC123...', 'allowed-address': '10.0.0.10/32', 'endpoint-address': 'client-001', disabled: false },
-    { id: '2', interface: 'wg-main', 'public-key': 'DEF456...', 'allowed-address': '10.0.0.11/32', 'endpoint-address': 'client-002', disabled: false },
-    { id: '3', interface: 'wg-mobile-clients', 'public-key': 'GHI789...', 'allowed-address': '10.1.0.5/32', 'endpoint-address': 'mobile-user', disabled: true },
-    { id: '4', interface: 'wg-branch-office', 'public-key': 'JKL012...', 'allowed-address': '10.2.0.1/32', 'endpoint-address': 'branch-office', disabled: false },
+    { id: '1', name: 'Cliente 001', interface: 'wg-main', 'public-key': 'ABC123...', 'allowed-address': '10.0.0.10/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51820, disabled: false },
+    { id: '2', name: 'Cliente 002', interface: 'wg-main', 'public-key': 'DEF456...', 'allowed-address': '10.0.0.11/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51820, disabled: false },
+    { id: '3', name: 'Mobile User', interface: 'wg-mobile-clients', 'public-key': 'GHI789...', 'allowed-address': '10.1.0.5/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51821, disabled: true },
+    { id: '4', name: 'Branch Office', interface: 'wg-branch-office', 'public-key': 'JKL012...', 'allowed-address': '10.2.0.1/32', 'endpoint-address': 'vpn.stacasa.local', 'endpoint-port': 51822, disabled: false },
   ];
 
   const displayPeers = isMikrotik && peers.length > 0 ? peers : fallbackPeers;
@@ -54,7 +54,7 @@ const Peers = () => {
     }
   ];
 
-  const handleCreatePeer = async (data: { interface: string; 'endpoint-address': string }) => {
+  const handleCreatePeer = async (data: { name: string; interface: string; 'endpoint-address': string }) => {
     return await createPeer(data);
   };
 
@@ -135,9 +135,10 @@ const Peers = () => {
                       <div className="flex-1">
                         <div className="flex items-center space-x-4">
                           <div>
-                            <h3 className="font-semibold text-white">{peer['endpoint-address'] || `peer-${peer.id}`}</h3>
+                            <h3 className="font-semibold text-white">{peer.name || peer['endpoint-address'] || `peer-${peer.id}`}</h3>
                             <p className="text-sm text-gray-400">
                               {peer.interface} • {peer['allowed-address']}
+                              {peer['endpoint-port'] && ` • Porta: ${peer['endpoint-port']}`}
                             </p>
                             <p className="text-xs text-gray-500">
                               Chave: {peer['public-key']?.substring(0, 20)}...

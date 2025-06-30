@@ -1,16 +1,27 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
 
 interface CreatePeerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSubmit: (data: { interface: string; 'endpoint-address': string }) => Promise<boolean>;
+  onSubmit: (data: { 
+    name: string;
+    interface: string; 
+    'endpoint-address': string;
+  }) => Promise<boolean>;
   isCreating: boolean;
+}
+
+interface WireguardInterface {
+  id: string;
+  name: string;
+  'listen-port'?: number;
 }
 
 const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
@@ -20,22 +31,77 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
   isCreating
 }) => {
   const [formData, setFormData] = useState({
+    name: '',
     interface: '',
-    'endpoint-address': 'vpn.stacasa.local'
+    'endpoint-address': ''
   });
+  const [interfaces, setInterfaces] = useState<WireguardInterface[]>([]);
+  const [isLoadingInterfaces, setIsLoadingInterfaces] = useState(false);
+
+  // Fetch WireGuard interfaces when modal opens
+  useEffect(() => {
+    if (isOpen) {
+      fetchWireguardInterfaces();
+    }
+  }, [isOpen]);
+
+  const fetchWireguardInterfaces = async () => {
+    const savedConfig = localStorage.getItem('routerConfig');
+    if (!savedConfig) return;
+
+    const config = JSON.parse(savedConfig);
+    if (config.routerType !== 'mikrotik') return;
+
+    setIsLoadingInterfaces(true);
+    const proxyUrl = 'http://localhost:5000/api/router/proxy';
+
+    const requestBody = {
+      routerType: config.routerType,
+      endpoint: config.endpoint,
+      port: config.port,
+      user: config.user,
+      password: config.password,
+      useHttps: config.useHttps,
+      path: '/rest/interface/wireguard',
+      method: 'GET'
+    };
+
+    try {
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(15000)
+      });
+
+      const responseData = await response.json();
+      
+      if (responseData.success && responseData.data) {
+        const interfacesData = Array.isArray(responseData.data) ? responseData.data : [];
+        setInterfaces(interfacesData);
+      }
+    } catch (error) {
+      console.error('Failed to fetch WireGuard interfaces:', error);
+    } finally {
+      setIsLoadingInterfaces(false);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.interface || !formData['endpoint-address']) {
+    if (!formData.name || !formData.interface || !formData['endpoint-address']) {
       return;
     }
 
     const success = await onSubmit(formData);
     if (success) {
       setFormData({
+        name: '',
         interface: '',
-        'endpoint-address': 'vpn.stacasa.local'
+        'endpoint-address': ''
       });
       onClose();
     }
@@ -46,6 +112,13 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
     setFormData(prev => ({
       ...prev,
       [name]: value
+    }));
+  };
+
+  const handleInterfaceChange = (value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      interface: value
     }));
   };
 
@@ -61,18 +134,41 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="space-y-2">
-            <Label htmlFor="interface" className="text-gray-300">
-              Interface *
+            <Label htmlFor="name" className="text-gray-300">
+              Nome do Usuário *
             </Label>
             <Input
-              id="interface"
-              name="interface"
-              value={formData.interface}
+              id="name"
+              name="name"
+              value={formData.name}
               onChange={handleInputChange}
-              placeholder="Ex: wg-main"
+              placeholder="Ex: João Silva"
               className="bg-gray-800 border-gray-700 text-white"
               required
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="interface" className="text-gray-300">
+              Interface WireGuard *
+            </Label>
+            <Select 
+              value={formData.interface} 
+              onValueChange={handleInterfaceChange}
+              disabled={isLoadingInterfaces}
+            >
+              <SelectTrigger className="bg-gray-800 border-gray-700 text-white">
+                <SelectValue placeholder={isLoadingInterfaces ? "Carregando..." : "Selecione uma interface"} />
+              </SelectTrigger>
+              <SelectContent className="bg-gray-800 border-gray-700">
+                {interfaces.map((iface) => (
+                  <SelectItem key={iface.id} value={iface.name} className="text-white hover:bg-gray-700">
+                    {iface.name}
+                    {iface['listen-port'] && ` (Porta: ${iface['listen-port']})`}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           <div className="space-y-2">
@@ -84,7 +180,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
               name="endpoint-address"
               value={formData['endpoint-address']}
               onChange={handleInputChange}
-              placeholder="vpn.stacasa.local"
+              placeholder="Será obtido da configuração global"
               className="bg-gray-800 border-gray-700 text-white"
               required
             />
@@ -92,7 +188,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
 
           <div className="bg-gray-800/50 p-3 rounded-lg border border-gray-700">
             <p className="text-sm text-gray-400">
-              <strong>Nota:</strong> A chave pública e o endereço permitido serão gerados automaticamente.
+              <strong>Nota:</strong> A chave pública, endereço permitido e porta do endpoint serão gerados automaticamente com base na configuração da interface selecionada.
             </p>
           </div>
 
@@ -107,7 +203,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={isCreating || !formData.interface || !formData['endpoint-address']}
+              disabled={isCreating || !formData.name || !formData.interface || !formData['endpoint-address']}
               className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
             >
               {isCreating ? 'Criando...' : 'Criar Peer'}

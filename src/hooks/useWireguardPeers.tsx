@@ -5,15 +5,18 @@ import { useApiLogsContext } from '@/contexts/ApiLogsContext';
 
 interface WireguardPeer {
   id: string;
+  name?: string;
   interface: string;
   'public-key': string;
   'allowed-address': string;
   'endpoint-address': string;
+  'endpoint-port'?: number;
   disabled?: boolean;
   comment?: string;
 }
 
 interface CreatePeerData {
+  name: string;
   interface: string;
   'endpoint-address': string;
 }
@@ -41,6 +44,49 @@ export const useWireguardPeers = () => {
     const baseNetwork = '10.0.0';
     const hostId = Math.floor(Math.random() * 254) + 1;
     return `${baseNetwork}.${hostId}/32`;
+  };
+
+  // Get endpoint port from interface configuration
+  const getEndpointPort = async (interfaceName: string) => {
+    const savedConfig = localStorage.getItem('routerConfig');
+    if (!savedConfig) return 51820; // default WireGuard port
+
+    const config = JSON.parse(savedConfig);
+    const proxyUrl = 'http://localhost:5000/api/router/proxy';
+
+    const requestBody = {
+      routerType: config.routerType,
+      endpoint: config.endpoint,
+      port: config.port,
+      user: config.user,
+      password: config.password,
+      useHttps: config.useHttps,
+      path: '/rest/interface/wireguard',
+      method: 'GET'
+    };
+
+    try {
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(15000)
+      });
+
+      const responseData = await response.json();
+      
+      if (responseData.success && responseData.data) {
+        const interfaces = Array.isArray(responseData.data) ? responseData.data : [];
+        const targetInterface = interfaces.find(iface => iface.name === interfaceName);
+        return targetInterface?.['listen-port'] || 51820;
+      }
+    } catch (error) {
+      console.error('Failed to get interface port:', error);
+    }
+    
+    return 51820; // default port
   };
 
   const fetchPeers = useCallback(async () => {
@@ -163,6 +209,9 @@ export const useWireguardPeers = () => {
     const startTime = Date.now();
     const proxyUrl = 'http://localhost:5000/api/router/proxy';
 
+    // Get endpoint port from interface
+    const endpointPort = await getEndpointPort(peerData.interface);
+
     const requestBody = {
       routerType: config.routerType,
       endpoint: config.endpoint,
@@ -173,10 +222,12 @@ export const useWireguardPeers = () => {
       path: '/rest/interface/wireguard/peers',
       method: 'PUT',
       body: {
+        name: peerData.name,
         interface: peerData.interface,
         'public-key': generatePublicKey(),
         'allowed-address': generateAllowedAddress(),
-        'endpoint-address': peerData['endpoint-address']
+        'endpoint-address': peerData['endpoint-address'],
+        'endpoint-port': endpointPort
       }
     };
 
