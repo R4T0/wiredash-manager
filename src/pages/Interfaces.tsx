@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -6,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Network, Plus, Edit, Trash2, Power, PowerOff, Activity, Clock, CheckCircle } from 'lucide-react';
 import StatsCard from '../components/StatsCard';
 import WireGuardInterfaceModal from '../components/WireGuardInterfaceModal';
+import WireGuardEditModal from '../components/WireGuardEditModal';
 import { useToast } from '@/hooks/use-toast';
 
 interface WireGuardInterface {
@@ -23,6 +23,8 @@ const Interfaces = () => {
   const [interfaces, setInterfaces] = useState<WireGuardInterface[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingInterface, setEditingInterface] = useState<WireGuardInterface | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const { toast } = useToast();
 
@@ -153,12 +155,12 @@ const Interfaces = () => {
       const responseData = await response.json();
       console.log('Delete interface response:', responseData);
 
-      if (responseData.success && (responseData.status === 200 || responseData.status === 204)) {
+      if (responseData.success) {
         toast({
           title: "Interface deletada",
           description: `Interface ${interfaceName} foi deletada com sucesso.`,
         });
-        fetchInterfaces(); // Refresh the list
+        await fetchInterfaces(); // Refresh the list
       } else {
         toast({
           title: "Erro ao deletar interface",
@@ -176,6 +178,17 @@ const Interfaces = () => {
     } finally {
       setDeletingId(null);
     }
+  };
+
+  const handleEditInterface = (iface: WireGuardInterface) => {
+    setEditingInterface(iface);
+    setIsEditModalOpen(true);
+  };
+
+  const handleEditSuccess = async () => {
+    setIsEditModalOpen(false);
+    setEditingInterface(null);
+    await fetchInterfaces();
   };
 
   useEffect(() => {
@@ -317,7 +330,12 @@ const Interfaces = () => {
                         </div>
                       </div>
                       <div className="flex items-center space-x-1">
-                        <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 h-8 w-8 p-0">
+                        <Button 
+                          variant="ghost" 
+                          size="sm" 
+                          className="text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 h-8 w-8 p-0"
+                          onClick={() => handleEditInterface(iface)}
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                         {isEnabled ? (
@@ -351,6 +369,13 @@ const Interfaces = () => {
           isOpen={isModalOpen}
           onClose={() => setIsModalOpen(false)}
           onSuccess={fetchInterfaces}
+        />
+
+        <WireGuardEditModal
+          isOpen={isEditModalOpen}
+          onClose={() => setIsEditModalOpen(false)}
+          onSuccess={handleEditSuccess}
+          interface={editingInterface}
         />
       </div>
     </Layout>
