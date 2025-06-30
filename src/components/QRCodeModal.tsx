@@ -18,10 +18,59 @@ const QRCodeModal = ({ isOpen, onClose, peer }: QRCodeModalProps) => {
   const [configContent, setConfigContent] = useState('');
   const [copied, setCopied] = useState(false);
 
-  const generateWireGuardConfig = (peerData: any) => {
+  // Function to get interface public key
+  const getInterfacePublicKey = async (interfaceName: string) => {
+    const savedConfig = localStorage.getItem('routerConfig');
+    if (!savedConfig) return 'CHAVE_PUBLICA_INTERFACE_NAO_ENCONTRADA';
+
+    const config = JSON.parse(savedConfig);
+    const proxyUrl = 'http://localhost:5000/api/router/proxy';
+
+    const requestBody = {
+      routerType: config.routerType,
+      endpoint: config.endpoint,
+      port: config.port,
+      user: config.user,
+      password: config.password,
+      useHttps: config.useHttps,
+      path: '/rest/interface/wireguard',
+      method: 'GET'
+    };
+
+    try {
+      console.log('Fetching interface public key for:', interfaceName);
+      
+      const response = await fetch(proxyUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(requestBody),
+        signal: AbortSignal.timeout(15000)
+      });
+
+      const responseData = await response.json();
+      
+      if (responseData.success && responseData.data) {
+        const interfaces = Array.isArray(responseData.data) ? responseData.data : [];
+        const targetInterface = interfaces.find(iface => iface.name === interfaceName);
+        const publicKey = targetInterface?.['public-key'] || 'CHAVE_PUBLICA_INTERFACE_NAO_ENCONTRADA';
+        console.log(`Interface ${interfaceName} public key:`, publicKey);
+        return publicKey;
+      }
+    } catch (error) {
+      console.error('Failed to get interface public key:', error);
+    }
+    
+    return 'CHAVE_PUBLICA_INTERFACE_NAO_ENCONTRADA';
+  };
+
+  const generateWireGuardConfig = async (peerData: any) => {
     // Use the actual private key from the router peer data
     const clientPrivateKey = peerData['private-key'] || 'CHAVE_PRIVADA_NAO_ENCONTRADA';
-    const serverPublicKey = peerData['public-key'] || 'CHAVE_PUBLICA_NAO_ENCONTRADA';
+    
+    // Get the public key from the WireGuard interface, not from the peer
+    const interfacePublicKey = await getInterfacePublicKey(peerData.interface);
     
     const config = `[Interface]
 PrivateKey = ${clientPrivateKey}
@@ -29,7 +78,7 @@ Address = ${peerData['allowed-address'] || '10.0.0.10/32'}
 DNS = 1.1.1.1
 
 [Peer]
-PublicKey = ${serverPublicKey}
+PublicKey = ${interfacePublicKey}
 Endpoint = ${peerData['endpoint-address'] || 'vpn.stacasa.local'}:${peerData['endpoint-port'] || 51820}
 AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = 25`;
@@ -56,11 +105,12 @@ PersistentKeepalive = 25`;
 
   useEffect(() => {
     if (isOpen && peer) {
-      const config = generateWireGuardConfig(peer);
-      setConfigContent(config);
-      
-      generateQRCode(config).then(qrUrl => {
-        setQrCodeUrl(qrUrl);
+      generateWireGuardConfig(peer).then(config => {
+        setConfigContent(config);
+        
+        generateQRCode(config).then(qrUrl => {
+          setQrCodeUrl(qrUrl);
+        });
       });
     }
   }, [isOpen, peer]);
