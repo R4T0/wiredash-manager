@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useApiLogsContext } from '@/contexts/ApiLogsContext';
@@ -18,6 +17,7 @@ interface WireguardPeer {
 interface CreatePeerData {
   name: string;
   interface: string;
+  'allowed-address': string;
   'endpoint-address': string;
 }
 
@@ -36,14 +36,6 @@ export const useWireguardPeers = () => {
       result += chars.charAt(Math.floor(Math.random() * chars.length));
     }
     return result;
-  };
-
-  // Generate automatic allowed address from global config
-  const generateAllowedAddress = () => {
-    // Placeholder - normally would get from global config
-    const baseNetwork = '10.0.0';
-    const hostId = Math.floor(Math.random() * 254) + 1;
-    return `${baseNetwork}.${hostId}/32`;
   };
 
   // Get endpoint port from interface configuration
@@ -225,14 +217,14 @@ export const useWireguardPeers = () => {
         name: peerData.name,
         interface: peerData.interface,
         'public-key': generatePublicKey(),
-        'allowed-address': generateAllowedAddress(),
+        'allowed-address': peerData['allowed-address'],
         'endpoint-address': peerData['endpoint-address'],
         'endpoint-port': endpointPort
       }
     };
 
     try {
-      console.log('Creating WireGuard peer...', requestBody);
+      console.log('Creating WireGuard peer with payload:', requestBody.body);
       
       const response = await fetch(proxyUrl, {
         method: 'POST',
@@ -258,7 +250,7 @@ export const useWireguardPeers = () => {
         duration
       });
 
-      if (responseData.success) {
+      if (response.ok && responseData.success) {
         toast({
           title: "✅ Peer criado com sucesso",
           description: "O peer WireGuard foi configurado no roteador.",
@@ -268,6 +260,7 @@ export const useWireguardPeers = () => {
         await fetchPeers();
         return true;
       } else {
+        console.error('Failed to create peer:', responseData);
         toast({
           title: "Erro ao criar peer",
           description: responseData.error || "Falha na comunicação com o roteador",

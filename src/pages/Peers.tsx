@@ -1,9 +1,8 @@
-
 import React, { useState } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Users, Plus, Download, QrCode, Trash2, Activity, UserCheck, Clock } from 'lucide-react';
+import { Users, Plus, Edit, QrCode, Trash2, Activity, UserCheck, Clock } from 'lucide-react';
 import StatsCard from '../components/StatsCard';
 import CreatePeerModal from '../components/CreatePeerModal';
 import { useWireguardPeers } from '../hooks/useWireguardPeers';
@@ -54,7 +53,7 @@ const Peers = () => {
     }
   ];
 
-  const handleCreatePeer = async (data: { name: string; interface: string; 'endpoint-address': string }) => {
+  const handleCreatePeer = async (data: { name: string; interface: string; 'allowed-address': string; 'endpoint-address': string }) => {
     return await createPeer(data);
   };
 
@@ -151,8 +150,8 @@ const Peers = () => {
                       <Button variant="ghost" size="sm" className="text-blue-400 hover:text-blue-300 hover:bg-blue-600/20 h-8 w-8 p-0">
                         <QrCode className="w-4 h-4" />
                       </Button>
-                      <Button variant="ghost" size="sm" className="text-green-400 hover:text-green-300 hover:bg-green-600/20 h-8 w-8 p-0">
-                        <Download className="w-4 h-4" />
+                      <Button variant="ghost" size="sm" className="text-yellow-400 hover:text-yellow-300 hover:bg-yellow-600/20 h-8 w-8 p-0">
+                        <Edit className="w-4 h-4" />
                       </Button>
                       <Button variant="ghost" size="sm" className="text-red-400 hover:text-red-300 hover:bg-red-600/20 h-8 w-8 p-0">
                         <Trash2 className="w-4 h-4" />

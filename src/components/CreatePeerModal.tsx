@@ -13,6 +13,7 @@ interface CreatePeerModalProps {
   onSubmit: (data: { 
     name: string;
     interface: string; 
+    'allowed-address': string;
     'endpoint-address': string;
   }) => Promise<boolean>;
   isCreating: boolean;
@@ -33,6 +34,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
   const [formData, setFormData] = useState({
     name: '',
     interface: '',
+    'allowed-address': '',
     'endpoint-address': ''
   });
   const [interfaces, setInterfaces] = useState<WireguardInterface[]>([]);
@@ -92,7 +94,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.name || !formData.interface || !formData['endpoint-address']) {
+    if (!formData.name || !formData.interface || !formData['allowed-address'] || !formData['endpoint-address']) {
       return;
     }
 
@@ -101,6 +103,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
       setFormData({
         name: '',
         interface: '',
+        'allowed-address': '',
         'endpoint-address': ''
       });
       onClose();
@@ -172,6 +175,21 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="allowed-address" className="text-gray-300">
+              Allowed Address *
+            </Label>
+            <Input
+              id="allowed-address"
+              name="allowed-address"
+              value={formData['allowed-address']}
+              onChange={handleInputChange}
+              placeholder="Ex: 10.0.0.10/32"
+              className="bg-gray-800 border-gray-700 text-white"
+              required
+            />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="endpoint-address" className="text-gray-300">
               Endpoint Address *
             </Label>
@@ -180,7 +198,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
               name="endpoint-address"
               value={formData['endpoint-address']}
               onChange={handleInputChange}
-              placeholder="Será obtido da configuração global"
+              placeholder="Ex: vpn.stacasa.local"
               className="bg-gray-800 border-gray-700 text-white"
               required
             />
@@ -188,7 +206,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
 
           <div className="bg-gray-800/50 p-3 rounded-lg border border-gray-700">
             <p className="text-sm text-gray-400">
-              <strong>Nota:</strong> A chave pública, endereço permitido e porta do endpoint serão gerados automaticamente com base na configuração da interface selecionada.
+              <strong>Nota:</strong> A chave pública e porta do endpoint serão gerados automaticamente com base na configuração da interface selecionada.
             </p>
           </div>
 
@@ -203,7 +221,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
             </Button>
             <Button
               type="submit"
-              disabled={isCreating || !formData.name || !formData.interface || !formData['endpoint-address']}
+              disabled={isCreating || !formData.name || !formData.interface || !formData['allowed-address'] || !formData['endpoint-address']}
               className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800"
             >
               {isCreating ? 'Criando...' : 'Criar Peer'}
