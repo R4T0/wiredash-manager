@@ -22,6 +22,8 @@ class BaseRouter(ABC):
         protocol = 'https' if use_https else 'http'
         port_suffix = f':{port}' if port else ''
         self.base_url = f'{protocol}://{endpoint}{port_suffix}'
+        
+        logger.info(f'Router initialized with base URL: {self.base_url} (HTTPS: {use_https})')
     
     def get_auth_headers(self):
         """Gerar headers de autenticação básica"""
@@ -37,21 +39,24 @@ class BaseRouter(ABC):
             url = f'{self.base_url}{path}'
             headers = self.get_auth_headers()
             
-            logger.info(f'Fazendo requisição {method} para: {url}')
+            logger.info(f'Fazendo requisição {method} para: {url} (HTTPS: {self.use_https})')
             
             start_time = datetime.now()
             
+            # Configurar verificação SSL baseada no protocolo
+            verify_ssl = self.use_https
+            
             # Fazer requisição baseada no método
             if method.upper() == 'GET':
-                response = requests.get(url, headers=headers, timeout=10, verify=False)
+                response = requests.get(url, headers=headers, timeout=10, verify=verify_ssl)
             elif method.upper() == 'POST':
-                response = requests.post(url, headers=headers, json=body, timeout=10, verify=False)
+                response = requests.post(url, headers=headers, json=body, timeout=10, verify=verify_ssl)
             elif method.upper() == 'PUT':
-                response = requests.put(url, headers=headers, json=body, timeout=10, verify=False)
+                response = requests.put(url, headers=headers, json=body, timeout=10, verify=verify_ssl)
             elif method.upper() == 'PATCH':
-                response = requests.patch(url, headers=headers, json=body, timeout=10, verify=False)
+                response = requests.patch(url, headers=headers, json=body, timeout=10, verify=verify_ssl)
             elif method.upper() == 'DELETE':
-                response = requests.delete(url, headers=headers, timeout=10, verify=False)
+                response = requests.delete(url, headers=headers, timeout=10, verify=verify_ssl)
             else:
                 return {
                     'success': False,
@@ -62,7 +67,7 @@ class BaseRouter(ABC):
             end_time = datetime.now()
             duration = (end_time - start_time).total_seconds() * 1000
             
-            logger.info(f'Resposta recebida - Status: {response.status_code}, Tempo: {duration:.2f}ms')
+            logger.info(f'Resposta recebida - Status: {response.status_code}, Tempo: {duration:.2f}ms, URL: {url}')
             
             # Processar resposta
             try:
@@ -78,7 +83,8 @@ class BaseRouter(ABC):
                 'duration_ms': round(duration, 2),
                 'url': url,
                 'method': method.upper(),
-                'router_type': self.get_router_type()
+                'router_type': self.get_router_type(),
+                'protocol': 'HTTPS' if self.use_https else 'HTTP'
             }
             
         except requests.exceptions.Timeout:
@@ -108,4 +114,17 @@ class BaseRouter(ABC):
                 'router_type': self.get_router_type()
             }
     
-    # ... keep existing code (abstract methods)
+    @abstractmethod
+    def get_router_type(self):
+        """Retornar o tipo do roteador"""
+        pass
+    
+    @abstractmethod
+    def get_default_test_path(self):
+        """Retornar o path padrão para teste de conexão"""
+        pass
+    
+    @abstractmethod
+    def test_connection(self):
+        """Testar conexão com o roteador"""
+        pass
