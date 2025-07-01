@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import { LayoutDashboard, Users, Settings, Network, QrCode, Plus } from 'lucide-react';
@@ -134,14 +135,14 @@ const AppSidebar = () => {
             <div className="w-10 h-10 flex items-center justify-center flex-shrink-0">
               <img 
                 src="/lovable-uploads/1e764844-64df-42f2-97ca-e0de115317be.png" 
-                alt="WireGuard Logo" 
+                alt="WireDash Logo" 
                 className="w-10 h-10 object-contain"
               />
             </div>
             {!isCollapsed && (
               <div>
-                <h1 className="text-xl font-bold text-white">WireGuard</h1>
-                <p className="text-xs text-gray-400">Manager Pro</p>
+                <h1 className="text-xl font-bold text-white">WireDash</h1>
+                <p className="text-xs text-gray-400">Manager</p>
               </div>
             )}
           </div>
