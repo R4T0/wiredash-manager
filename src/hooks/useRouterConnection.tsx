@@ -31,16 +31,16 @@ export const useRouterConnection = () => {
   const { toast } = useToast();
   const { addLog } = useApiLogsContext();
 
-  // Load saved data from API with localStorage fallback
+  // Load saved data from SQLite database via API
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        console.log('Loading router configuration from API...');
+        console.log('Loading router configuration from SQLite database...');
         const response = await apiService.getRouterConfig();
         
         if (response.success && response.data) {
           const config = response.data;
-          console.log('Router configuration loaded from API:', config);
+          console.log('Router configuration loaded from SQLite:', config);
           setFormData({
             endpoint: config.endpoint || '',
             port: config.port || '',
@@ -52,31 +52,16 @@ export const useRouterConnection = () => {
             setSelectedRouter(config.router_type);
           }
         } else {
-          // Se não há dados na API, tenta localStorage
-          const savedConfig = localStorage.getItem('routerConfig');
-          if (savedConfig) {
-            const config = JSON.parse(savedConfig);
-            console.log('Loading saved router configuration from localStorage:', config);
-            setFormData({
-              endpoint: config.endpoint || '',
-              port: config.port || '',
-              user: config.user || '',
-              password: config.password || '',
-              useHttps: config.useHttps || false
-            });
-            if (config.routerType) {
-              setSelectedRouter(config.routerType);
-            }
-          }
+          console.log('No router configuration found in SQLite database');
         }
       } catch (error) {
-        console.error('Failed to load router config from API, trying localStorage:', error);
-        // Fallback to localStorage
+        console.error('Failed to load router config from SQLite database:', error);
+        // Fallback temporário para localStorage apenas se API falhar completamente
         try {
           const savedConfig = localStorage.getItem('routerConfig');
           if (savedConfig) {
             const config = JSON.parse(savedConfig);
-            console.log('Loading saved router configuration from localStorage:', config);
+            console.log('Fallback: Loading configuration from localStorage:', config);
             setFormData({
               endpoint: config.endpoint || '',
               port: config.port || '',
@@ -89,7 +74,7 @@ export const useRouterConnection = () => {
             }
           }
         } catch (localError) {
-          console.error('Error loading from localStorage:', localError);
+          console.error('Error loading from localStorage fallback:', localError);
         }
       }
     };
@@ -213,27 +198,28 @@ export const useRouterConnection = () => {
       useHttps: formData.useHttps
     };
 
-    console.log('Saving router configuration:', configToSave);
+    console.log('Saving router configuration to SQLite database:', configToSave);
     
     try {
       const response = await apiService.saveRouterConfig(configToSave);
       if (response.success) {
-        console.log('Configuration saved successfully to API');
-        // Também salva no localStorage como backup
-        localStorage.setItem('routerConfig', JSON.stringify(configToSave));
+        console.log('Configuration saved successfully to SQLite database');
         toast({
           title: "✅ Configurações salvas",
-          description: "As configurações foram salvas com sucesso no banco de dados!",
+          description: "As configurações foram salvas com sucesso no banco de dados SQLite!",
         });
+      } else {
+        throw new Error('Failed to save to SQLite database');
       }
     } catch (error) {
-      console.error('Failed to save to API, falling back to localStorage:', error);
-      // Fallback to localStorage
+      console.error('Failed to save to SQLite database:', error);
+      // Fallback temporário para localStorage apenas se API falhar
       localStorage.setItem('routerConfig', JSON.stringify(configToSave));
-      console.log('Configuration saved to localStorage as fallback');
+      console.log('Fallback: Configuration saved to localStorage');
       toast({
-        title: "⚠️ Configurações salvas localmente",
-        description: "As configurações foram salvas localmente (API indisponível).",
+        title: "⚠️ Configurações salvas temporariamente",
+        description: "As configurações foram salvas localmente. Verifique a conexão com o banco de dados.",
+        variant: "destructive"
       });
     }
   }, [formData, selectedRouter, toast]);

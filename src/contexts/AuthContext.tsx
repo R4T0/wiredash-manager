@@ -1,3 +1,4 @@
+
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiService } from '@/services/api';
 
@@ -41,12 +42,11 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        // PRIMEIRO: Restaura usuário do localStorage imediatamente para evitar logout no refresh
+        // PRIMEIRO: Restaura usuário do localStorage apenas para verificar sessão válida
         const savedCurrentUser = localStorage.getItem('current_user');
         if (savedCurrentUser) {
           try {
             const parsedUser = JSON.parse(savedCurrentUser);
-            // Verifica se o token de sessão ainda é válido (opcional)
             const sessionToken = localStorage.getItem('session_token');
             const sessionExpiry = localStorage.getItem('session_expiry');
             
@@ -55,8 +55,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const expiryTime = parseInt(sessionExpiry);
               
               if (now < expiryTime) {
-                setCurrentUser(parsedUser);
-                console.log('User restored from localStorage with valid session:', parsedUser.email);
+                // Verifica se o usuário ainda existe no SQLite
+                try {
+                  const response = await apiService.getUsers();
+                  if (response.success) {
+                    const userExists = response.data.find((u: User) => u.id === parsedUser.id && u.enabled);
+                    if (userExists) {
+                      setCurrentUser(parsedUser);
+                      console.log('User session restored and validated against SQLite:', parsedUser.email);
+                    } else {
+                      console.log('User not found in SQLite or disabled, logging out');
+                      localStorage.removeItem('current_user');
+                      localStorage.removeItem('session_token');
+                      localStorage.removeItem('session_expiry');
+                    }
+                  }
+                } catch (error) {
+                  // Se API falhar, mantém usuário logado temporariamente
+                  setCurrentUser(parsedUser);
+                  console.log('Cannot validate user against SQLite, keeping session temporarily:', parsedUser.email);
+                }
               } else {
                 // Sessão expirada
                 localStorage.removeItem('current_user');
@@ -64,10 +82,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 localStorage.removeItem('session_expiry');
                 console.log('Session expired, user logged out');
               }
-            } else {
-              // Se não há controle de sessão, mantém o usuário logado
-              setCurrentUser(parsedUser);
-              console.log('User restored from localStorage:', parsedUser.email);
             }
           } catch (error) {
             console.error('Error parsing saved user:', error);
@@ -77,18 +91,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
 
-        // SEGUNDO: Carrega usuários da API em background, com fallback para localStorage
-        try {
-          await loadUsers();
-        } catch (error) {
-          console.error('Error loading users from API:', error);
-          // Fallback para localStorage se API falhar
-          await loadUsersFromLocalStorage();
-        }
+        // SEGUNDO: Carrega usuários do SQLite
+        await loadUsers();
       } catch (error) {
         console.error('Error loading initial data:', error);
-        // Fallback para localStorage se tudo falhar
-        await loadUsersFromLocalStorage();
       } finally {
         setIsLoading(false);
       }
@@ -99,39 +105,39 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const loadUsers = async () => {
     try {
+      console.log('Loading users from SQLite database...');
       const response = await apiService.getUsers();
       if (response.success) {
         setUsers(response.data);
-        console.log('Users loaded from API:', response.data);
+        console.log('Users loaded from SQLite:', response.data);
+      } else {
+        throw new Error('Failed to load users from SQLite');
       }
     } catch (error) {
-      console.error('Failed to load users from API:', error);
-      throw error;
-    }
-  };
-
-  const loadUsersFromLocalStorage = async () => {
-    console.log('Loading users from localStorage as fallback');
-    const savedUsers = localStorage.getItem('app_users');
-    if (savedUsers) {
-      setUsers(JSON.parse(savedUsers));
-    } else {
-      // Usuário admin padrão
-      const defaultUsers = [{
-        id: '1',
-        name: 'Admin User',
-        email: 'admin@example.com',
-        password: 'admin123',
-        enabled: true,
-        created_at: '2024-01-15'
-      }];
-      setUsers(defaultUsers);
-      localStorage.setItem('app_users', JSON.stringify(defaultUsers));
+      console.error('Failed to load users from SQLite database:', error);
+      // Fallback temporário para localStorage apenas se API falhar
+      console.log('Fallback: Loading users from localStorage');
+      const savedUsers = localStorage.getItem('app_users');
+      if (savedUsers) {
+        setUsers(JSON.parse(savedUsers));
+      } else {
+        // Usuário admin padrão
+        const defaultUsers = [{
+          id: '1',
+          name: 'Admin User',
+          email: 'admin@example.com',
+          password: 'admin123',
+          enabled: true,
+          created_at: '2024-01-15'
+        }];
+        setUsers(defaultUsers);
+      }
     }
   };
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
+      console.log('Attempting login via SQLite database...');
       const response = await apiService.login(email, password);
       if (response.success) {
         const user = response.data;
@@ -144,13 +150,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('session_token', sessionToken);
         localStorage.setItem('session_expiry', sessionExpiry.toString());
         
-        console.log('User logged in successfully:', user.email);
+        console.log('User logged in successfully via SQLite:', user.email);
         return true;
       }
       return false;
     } catch (error) {
-      console.error('API login failed, trying localStorage fallback:', error);
-      // Fallback para localStorage
+      console.error('SQLite login failed, trying localStorage fallback:', error);
+      // Fallback temporário para localStorage apenas se API falhar
       const user = users.find(u => u.email === email && u.password === password && u.enabled);
       if (user) {
         setCurrentUser(user);
@@ -162,7 +168,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         localStorage.setItem('session_token', sessionToken);
         localStorage.setItem('session_expiry', sessionExpiry.toString());
         
-        console.log('User logged in via localStorage fallback:', user.email);
+        console.log('Fallback: User logged in via localStorage:', user.email);
         return true;
       }
       return false;
@@ -179,32 +185,26 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const addUser = async (userData: Omit<User, 'id' | 'created_at'>): Promise<boolean> => {
     try {
+      console.log('Creating user in SQLite database...');
       const response = await apiService.createUser(userData);
       if (response.success) {
-        await loadUsers(); // Refresh users list
+        await loadUsers(); // Refresh users list from SQLite
+        console.log('User created successfully in SQLite');
         return true;
       }
       return false;
     } catch (error) {
-      console.error('API create user failed, trying localStorage fallback:', error);
-      // Fallback to localStorage
-      const newUser: User = {
-        ...userData,
-        id: Date.now().toString(),
-        created_at: new Date().toISOString().split('T')[0]
-      };
-      const updatedUsers = [...users, newUser];
-      setUsers(updatedUsers);
-      localStorage.setItem('app_users', JSON.stringify(updatedUsers));
-      return true;
+      console.error('SQLite create user failed:', error);
+      return false;
     }
   };
 
   const updateUser = async (id: string, updates: Partial<User>): Promise<boolean> => {
     try {
+      console.log('Updating user in SQLite database...');
       const response = await apiService.updateUser(id, updates);
       if (response.success) {
-        await loadUsers(); // Refresh users list
+        await loadUsers(); // Refresh users list from SQLite
         
         // Update current user if it's the same
         if (currentUser?.id === id) {
@@ -212,51 +212,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           setCurrentUser(updatedUser);
           localStorage.setItem('current_user', JSON.stringify(updatedUser));
         }
+        console.log('User updated successfully in SQLite');
         return true;
       }
       return false;
     } catch (error) {
-      console.error('API update user failed, trying localStorage fallback:', error);
-      // Fallback to localStorage
-      const updatedUsers = users.map(user => 
-        user.id === id ? { ...user, ...updates } : user
-      );
-      setUsers(updatedUsers);
-      localStorage.setItem('app_users', JSON.stringify(updatedUsers));
-      
-      if (currentUser?.id === id) {
-        const updatedUser = { ...currentUser, ...updates };
-        setCurrentUser(updatedUser);
-        localStorage.setItem('current_user', JSON.stringify(updatedUser));
-      }
-      return true;
+      console.error('SQLite update user failed:', error);
+      return false;
     }
   };
 
   const deleteUser = async (id: string): Promise<boolean> => {
     try {
+      console.log('Deleting user from SQLite database...');
       const response = await apiService.deleteUser(id);
       if (response.success) {
-        await loadUsers(); // Refresh users list
+        await loadUsers(); // Refresh users list from SQLite
         
         // Logout if current user was deleted
         if (currentUser?.id === id) {
           logout();
         }
+        console.log('User deleted successfully from SQLite');
         return true;
       }
       return false;
     } catch (error) {
-      console.error('API delete user failed, trying localStorage fallback:', error);
-      // Fallback to localStorage
-      const updatedUsers = users.filter(user => user.id !== id);
-      setUsers(updatedUsers);
-      localStorage.setItem('app_users', JSON.stringify(updatedUsers));
-      
-      if (currentUser?.id === id) {
-        logout();
-      }
-      return true;
+      console.error('SQLite delete user failed:', error);
+      return false;
     }
   };
 

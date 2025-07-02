@@ -16,31 +16,33 @@ const WireGuardTab = () => {
   });
   const { toast } = useToast();
 
-  // Load data from API or localStorage fallback
+  // Load data from SQLite database via API
   useEffect(() => {
     const loadConfig = async () => {
       try {
-        console.log('Loading WireGuard configuration from API...');
+        console.log('Loading WireGuard configuration from SQLite database...');
         const response = await apiService.getWireguardConfig();
         
         if (response.success && response.data) {
           const config = response.data;
-          console.log('WireGuard configuration loaded from API:', config);
+          console.log('WireGuard configuration loaded from SQLite:', config);
           setWireguardConfig({
             endpointPadrao: config.endpoint_padrao || '',
             portaPadrao: config.porta_padrao || '',
             rangeIpsPermitidos: config.range_ips_permitidos || '',
             dnsCliente: config.dns_cliente || ''
           });
+        } else {
+          console.log('No WireGuard configuration found in SQLite database');
         }
       } catch (error) {
-        console.error('Failed to load WireGuard config from API, trying localStorage:', error);
-        // Fallback to localStorage
+        console.error('Failed to load WireGuard config from SQLite database:', error);
+        // Fallback temporário para localStorage apenas se API falhar completamente
         try {
           const savedConfig = localStorage.getItem('wireguardConfig');
           if (savedConfig) {
             const config = JSON.parse(savedConfig);
-            console.log('Loading saved WireGuard configuration from localStorage:', config);
+            console.log('Fallback: Loading WireGuard configuration from localStorage:', config);
             setWireguardConfig({
               endpointPadrao: config.endpointPadrao || '',
               portaPadrao: config.portaPadrao || '',
@@ -49,7 +51,7 @@ const WireGuardTab = () => {
             });
           }
         } catch (localError) {
-          console.error('Error loading from localStorage:', localError);
+          console.error('Error loading from localStorage fallback:', localError);
         }
       }
     };
@@ -67,25 +69,28 @@ const WireGuardTab = () => {
   };
 
   const handleWireguardSave = async () => {
-    console.log('Saving WireGuard configuration:', wireguardConfig);
+    console.log('Saving WireGuard configuration to SQLite database:', wireguardConfig);
     
     try {
       const response = await apiService.saveWireguardConfig(wireguardConfig);
       if (response.success) {
-        console.log('WireGuard configuration saved successfully to API');
+        console.log('WireGuard configuration saved successfully to SQLite database');
         toast({
           title: "✅ Configurações salvas",
-          description: "As configurações WireGuard foram salvas com sucesso no banco de dados!",
+          description: "As configurações WireGuard foram salvas com sucesso no banco de dados SQLite!",
         });
+      } else {
+        throw new Error('Failed to save to SQLite database');
       }
     } catch (error) {
-      console.error('Failed to save to API, falling back to localStorage:', error);
-      // Fallback to localStorage
+      console.error('Failed to save to SQLite database:', error);
+      // Fallback temporário para localStorage apenas se API falhar
       localStorage.setItem('wireguardConfig', JSON.stringify(wireguardConfig));
-      console.log('WireGuard configuration saved to localStorage as fallback');
+      console.log('Fallback: WireGuard configuration saved to localStorage');
       toast({
-        title: "⚠️ Configurações salvas localmente",
-        description: "As configurações WireGuard foram salvas localmente (API indisponível).",
+        title: "⚠️ Configurações salvas temporariamente",
+        description: "As configurações foram salvas localmente. Verifique a conexão com o banco de dados.",
+        variant: "destructive"
       });
     }
   };
