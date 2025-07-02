@@ -41,30 +41,53 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        // FIRST: Restore user from localStorage immediately to prevent logout on refresh
+        // PRIMEIRO: Restaura usuário do localStorage imediatamente para evitar logout no refresh
         const savedCurrentUser = localStorage.getItem('current_user');
         if (savedCurrentUser) {
           try {
             const parsedUser = JSON.parse(savedCurrentUser);
-            setCurrentUser(parsedUser);
-            console.log('User restored from localStorage:', parsedUser.email);
+            // Verifica se o token de sessão ainda é válido (opcional)
+            const sessionToken = localStorage.getItem('session_token');
+            const sessionExpiry = localStorage.getItem('session_expiry');
+            
+            if (sessionToken && sessionExpiry) {
+              const now = new Date().getTime();
+              const expiryTime = parseInt(sessionExpiry);
+              
+              if (now < expiryTime) {
+                setCurrentUser(parsedUser);
+                console.log('User restored from localStorage with valid session:', parsedUser.email);
+              } else {
+                // Sessão expirada
+                localStorage.removeItem('current_user');
+                localStorage.removeItem('session_token');
+                localStorage.removeItem('session_expiry');
+                console.log('Session expired, user logged out');
+              }
+            } else {
+              // Se não há controle de sessão, mantém o usuário logado
+              setCurrentUser(parsedUser);
+              console.log('User restored from localStorage:', parsedUser.email);
+            }
           } catch (error) {
             console.error('Error parsing saved user:', error);
             localStorage.removeItem('current_user');
+            localStorage.removeItem('session_token');
+            localStorage.removeItem('session_expiry');
           }
         }
 
-        // SECOND: Load users from API in background, with fallback to localStorage
+        // SEGUNDO: Carrega usuários da API em background, com fallback para localStorage
         try {
           await loadUsers();
         } catch (error) {
           console.error('Error loading users from API:', error);
-          // Fallback to localStorage if API fails
+          // Fallback para localStorage se API falhar
           await loadUsersFromLocalStorage();
         }
       } catch (error) {
         console.error('Error loading initial data:', error);
-        // Fallback to localStorage if everything fails
+        // Fallback para localStorage se tudo falhar
         await loadUsersFromLocalStorage();
       } finally {
         setIsLoading(false);
@@ -93,7 +116,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     if (savedUsers) {
       setUsers(JSON.parse(savedUsers));
     } else {
-      // Default admin user
+      // Usuário admin padrão
       const defaultUsers = [{
         id: '1',
         name: 'Admin User',
@@ -114,17 +137,31 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const user = response.data;
         setCurrentUser(user);
         localStorage.setItem('current_user', JSON.stringify(user));
+        
+        // Cria sessão com validade de 24 horas
+        const sessionToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        const sessionExpiry = new Date().getTime() + (24 * 60 * 60 * 1000); // 24 horas
+        localStorage.setItem('session_token', sessionToken);
+        localStorage.setItem('session_expiry', sessionExpiry.toString());
+        
         console.log('User logged in successfully:', user.email);
         return true;
       }
       return false;
     } catch (error) {
       console.error('API login failed, trying localStorage fallback:', error);
-      // Fallback to localStorage
+      // Fallback para localStorage
       const user = users.find(u => u.email === email && u.password === password && u.enabled);
       if (user) {
         setCurrentUser(user);
         localStorage.setItem('current_user', JSON.stringify(user));
+        
+        // Cria sessão com validade de 24 horas
+        const sessionToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        const sessionExpiry = new Date().getTime() + (24 * 60 * 60 * 1000); // 24 horas
+        localStorage.setItem('session_token', sessionToken);
+        localStorage.setItem('session_expiry', sessionExpiry.toString());
+        
         console.log('User logged in via localStorage fallback:', user.email);
         return true;
       }
@@ -136,6 +173,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     console.log('User logged out');
     setCurrentUser(null);
     localStorage.removeItem('current_user');
+    localStorage.removeItem('session_token');
+    localStorage.removeItem('session_expiry');
   };
 
   const addUser = async (userData: Omit<User, 'id' | 'created_at'>): Promise<boolean> => {

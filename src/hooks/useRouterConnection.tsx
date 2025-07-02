@@ -31,7 +31,7 @@ export const useRouterConnection = () => {
   const { toast } = useToast();
   const { addLog } = useApiLogsContext();
 
-  // Load saved data from API or localStorage fallback
+  // Load saved data from API with localStorage fallback
   useEffect(() => {
     const loadConfig = async () => {
       try {
@@ -50,6 +50,23 @@ export const useRouterConnection = () => {
           });
           if (config.router_type) {
             setSelectedRouter(config.router_type);
+          }
+        } else {
+          // Se não há dados na API, tenta localStorage
+          const savedConfig = localStorage.getItem('routerConfig');
+          if (savedConfig) {
+            const config = JSON.parse(savedConfig);
+            console.log('Loading saved router configuration from localStorage:', config);
+            setFormData({
+              endpoint: config.endpoint || '',
+              port: config.port || '',
+              user: config.user || '',
+              password: config.password || '',
+              useHttps: config.useHttps || false
+            });
+            if (config.routerType) {
+              setSelectedRouter(config.routerType);
+            }
           }
         }
       } catch (error) {
@@ -108,7 +125,7 @@ export const useRouterConnection = () => {
     }
 
     setIsTestingConnection(true);
-    console.log(`Testing connection with ${selectedRouter} router via API service...`);
+    console.log(`Testing connection with ${selectedRouter} router via backend...`);
 
     const startTime = Date.now();
     
@@ -122,9 +139,9 @@ export const useRouterConnection = () => {
     };
 
     try {
-      console.log(`Making request to API service for ${selectedRouter}...`, requestData);
+      console.log(`Making request to backend for ${selectedRouter}...`, requestData);
       
-      // Use the API service for test connection
+      // Use backend endpoint for test connection
       const response = await fetch('http://localhost:5000/api/router/test-connection', {
         method: 'POST',
         headers: {
@@ -137,7 +154,7 @@ export const useRouterConnection = () => {
       const duration = Date.now() - startTime;
       const responseData = await response.json();
       
-      console.log('API service response:', responseData);
+      console.log('Backend response:', responseData);
 
       addLog({
         method: 'POST',
@@ -166,7 +183,7 @@ export const useRouterConnection = () => {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       
-      console.error('API service request failed:', error);
+      console.error('Backend request failed:', error);
       
       addLog({
         method: 'POST',
@@ -178,7 +195,7 @@ export const useRouterConnection = () => {
 
       toast({
         title: "❌ Erro de conexão",
-        description: `Não foi possível conectar ao serviço de API. Verifique se o backend está executando.`,
+        description: `Não foi possível conectar ao backend. Verifique se o backend está executando.`,
         variant: "destructive"
       });
     } finally {
@@ -202,6 +219,8 @@ export const useRouterConnection = () => {
       const response = await apiService.saveRouterConfig(configToSave);
       if (response.success) {
         console.log('Configuration saved successfully to API');
+        // Também salva no localStorage como backup
+        localStorage.setItem('routerConfig', JSON.stringify(configToSave));
         toast({
           title: "✅ Configurações salvas",
           description: "As configurações foram salvas com sucesso no banco de dados!",
