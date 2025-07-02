@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/contexts/AuthContext';
 import { LogOut, User, Menu } from 'lucide-react';
 import AppSidebar from './AppSidebar';
+import Footer from './Footer';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 
 interface LayoutProps {
@@ -49,6 +50,7 @@ const Layout = ({ children }: LayoutProps) => {
           <main className="flex-1 p-8">
             {children}
           </main>
+          <Footer />
         </div>
       </div>
     </SidebarProvider>
