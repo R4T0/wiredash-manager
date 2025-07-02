@@ -8,6 +8,7 @@ import WireGuardInterfaceModal from '../components/WireGuardInterfaceModal';
 import WireGuardEditModal from '../components/WireGuardEditModal';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { apiService } from '@/services/api';
 
 interface WireGuardInterface {
   '.id': string;
@@ -30,39 +31,48 @@ const Interfaces = () => {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [connectionValid, setConnectionValid] = useState<boolean | null>(null);
   const [isCheckingConnection, setIsCheckingConnection] = useState(true);
+  const [routerConfig, setRouterConfig] = useState<any>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Check router connection validity
+  // Check router connection validity using the same API that saves configs
   useEffect(() => {
     const checkConnection = async () => {
-      const savedConfig = localStorage.getItem('routerConfig');
-      if (!savedConfig) {
-        setConnectionValid(false);
-        setIsCheckingConnection(false);
-        return;
-      }
-
-      const config = JSON.parse(savedConfig);
-      if (!config.endpoint || !config.user || !config.password) {
-        setConnectionValid(false);
-        setIsCheckingConnection(false);
-        return;
-      }
-
       try {
+        console.log('Loading router configuration from SQLite API...');
+        const configResponse = await apiService.getRouterConfig();
+        
+        if (!configResponse.success || !configResponse.data) {
+          console.log('No router configuration found in SQLite database');
+          setConnectionValid(false);
+          setIsCheckingConnection(false);
+          return;
+        }
+
+        const config = configResponse.data;
+        console.log('Router configuration loaded:', config);
+        setRouterConfig(config);
+
+        if (!config.endpoint || !config.user || !config.password) {
+          console.log('Router configuration incomplete');
+          setConnectionValid(false);
+          setIsCheckingConnection(false);
+          return;
+        }
+
+        // Test the connection using the same API endpoint
         const response = await fetch('http://localhost:5000/api/router/test-connection', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            routerType: config.routerType,
+            routerType: config.router_type,
             endpoint: config.endpoint,
             port: config.port,
             user: config.user,
             password: config.password,
-            useHttps: config.useHttps
+            useHttps: config.use_https
           }),
           signal: AbortSignal.timeout(10000)
         });
@@ -88,20 +98,17 @@ const Interfaces = () => {
 
   // Make API request through backend proxy
   const makeProxyRequest = async (path: string, method: string = 'GET', body?: any) => {
-    const savedConfig = localStorage.getItem('routerConfig');
-    if (!savedConfig) {
+    if (!routerConfig) {
       throw new Error('Router configuration not found');
     }
-
-    const config = JSON.parse(savedConfig);
     
     const requestBody = {
-      routerType: config.routerType || 'mikrotik',
-      endpoint: config.endpoint,
-      port: config.port,
-      user: config.user,
-      password: config.password,
-      useHttps: config.useHttps,
+      routerType: routerConfig.router_type || 'mikrotik',
+      endpoint: routerConfig.endpoint,
+      port: routerConfig.port,
+      user: routerConfig.user,
+      password: routerConfig.password,
+      useHttps: routerConfig.use_https,
       path: path,
       method: method,
       ...(body && { body })
