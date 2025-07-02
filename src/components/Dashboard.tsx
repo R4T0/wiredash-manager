@@ -1,18 +1,48 @@
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Users, Network, Activity, Plus, Download, QrCode } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import StatsCard from './StatsCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { useWireguardPeers } from '@/hooks/useWireguardPeers';
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+  const { peers, isLoading } = useWireguardPeers();
+  const [recentPeers, setRecentPeers] = useState<any[]>([]);
+
+  useEffect(() => {
+    if (peers.length > 0) {
+      // Filter peers created in the last 24 hours
+      const now = new Date();
+      const twentyFourHoursAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      
+      const recent = peers.filter(peer => {
+        // Check if peer has a creation date or use comment field for timestamp
+        if (peer.comment) {
+          try {
+            // Try to parse date from comment or other fields
+            const createdDate = new Date(peer.comment);
+            return createdDate >= twentyFourHoursAgo;
+          } catch (error) {
+            return false;
+          }
+        }
+        return false;
+      }).slice(0, 3); // Show only the 3 most recent
+
+      setRecentPeers(recent);
+    }
+  }, [peers]);
+
   const stats = [
     {
       title: 'Total de Peers',
-      value: 24,
+      value: peers.length || 0,
       subtitle: 'Peers ativos',
       icon: Users,
-      trend: { value: 12, isPositive: true },
+      trend: peers.length > 0 ? { value: 12, isPositive: true } : undefined,
       gradient: 'from-blue-600 to-blue-700'
     },
     {
@@ -31,11 +61,17 @@ const Dashboard = () => {
     }
   ];
 
-  const recentPeers = [
-    { name: 'client-001', interface: 'wg-main', ip: '10.0.0.10', status: 'online' },
-    { name: 'client-002', interface: 'wg-main', ip: '10.0.0.11', status: 'online' },
-    { name: 'client-003', interface: 'wg-branch', ip: '10.1.0.5', status: 'offline' },
-  ];
+  const handleCreatePeer = () => {
+    navigate('/peers');
+  };
+
+  const handleGenerateQR = () => {
+    navigate('/generate');
+  };
+
+  const handleViewInterfaces = () => {
+    navigate('/interfaces');
+  };
 
   return (
     <div className="space-y-8 animate-fade-in">
@@ -45,7 +81,10 @@ const Dashboard = () => {
           <h1 className="text-4xl font-bold text-white mb-2">Dashboard Manager</h1>
           <p className="text-gray-400 text-lg">Gerencie Interfaces e peers do seu Wireguard</p>
         </div>
-        <Button className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white shadow-lg">
+        <Button 
+          onClick={handleCreatePeer}
+          className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white shadow-lg"
+        >
           <Plus className="w-4 h-4 mr-2" />
           Novo Peer
         </Button>
@@ -73,29 +112,41 @@ const Dashboard = () => {
           <Card className="bg-gray-900/50 border-gray-800">
             <CardHeader>
               <CardTitle className="text-white">Peers Recentes</CardTitle>
-              <CardDescription>Últimos peers criados e seu status</CardDescription>
+              <CardDescription>Peers criados nas últimas 24h via sistema</CardDescription>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentPeers.map((peer, index) => (
-                  <div key={index} className="flex items-center justify-between p-4 bg-gray-800/50 rounded-xl">
-                    <div className="flex items-center space-x-4">
-                      <div className={`status-indicator ${peer.status === 'online' ? 'status-online' : 'status-offline'}`}></div>
-                      <div>
-                        <p className="font-medium text-white">{peer.name}</p>
-                        <p className="text-sm text-gray-400">{peer.interface} • {peer.ip}</p>
+                {isLoading ? (
+                  <div className="text-center py-4">
+                    <p className="text-gray-400">Carregando peers...</p>
+                  </div>
+                ) : recentPeers.length > 0 ? (
+                  recentPeers.map((peer, index) => (
+                    <div key={index} className="flex items-center justify-between p-4 bg-gray-800/50 rounded-xl">
+                      <div className="flex items-center space-x-4">
+                        <div className="status-indicator status-online"></div>
+                        <div>
+                          <p className="font-medium text-white">{peer.name || peer['.id']}</p>
+                          <p className="text-sm text-gray-400">{peer.interface} • {peer['allowed-address']}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Button variant="ghost" size="sm">
+                          <QrCode className="w-4 h-4" />
+                        </Button>
+                        <Button variant="ghost" size="sm">
+                          <Download className="w-4 h-4" />
+                        </Button>
                       </div>
                     </div>
-                    <div className="flex items-center space-x-2">
-                      <Button variant="ghost" size="sm">
-                        <QrCode className="w-4 h-4" />
-                      </Button>
-                      <Button variant="ghost" size="sm">
-                        <Download className="w-4 h-4" />
-                      </Button>
-                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-8">
+                    <Users className="w-12 h-12 text-gray-500 mx-auto mb-4" />
+                    <p className="text-gray-400 mb-2">Nenhum peer recente</p>
+                    <p className="text-sm text-gray-500">Peers criados nas últimas 24h aparecerão aqui</p>
                   </div>
-                ))}
+                )}
               </div>
             </CardContent>
           </Card>
@@ -109,15 +160,24 @@ const Dashboard = () => {
               <CardDescription>Ferramentas mais utilizadas</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              <Button className="w-full justify-start bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border-blue-600/30">
+              <Button 
+                onClick={handleCreatePeer}
+                className="w-full justify-start bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border-blue-600/30"
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Criar Peer
               </Button>
-              <Button className="w-full justify-start bg-green-600/20 hover:bg-green-600/30 text-green-400 border-green-600/30">
+              <Button 
+                onClick={handleGenerateQR}
+                className="w-full justify-start bg-green-600/20 hover:bg-green-600/30 text-green-400 border-green-600/30"
+              >
                 <QrCode className="w-4 h-4 mr-2" />
                 Gerar QR Code
               </Button>
-              <Button className="w-full justify-start bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border-purple-600/30">
+              <Button 
+                onClick={handleViewInterfaces}
+                className="w-full justify-start bg-purple-600/20 hover:bg-purple-600/30 text-purple-400 border-purple-600/30"
+              >
                 <Network className="w-4 h-4 mr-2" />
                 Ver Interfaces
               </Button>
