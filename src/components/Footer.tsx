@@ -17,7 +17,7 @@ const Footer = () => {
               rel="noopener noreferrer"
               className="flex items-center space-x-1 text-green-400 hover:text-green-300 transition-colors"
             >
-              <span>DualTecMS</span>
+              <span>Dualtec</span>
               <ExternalLink className="w-3 h-3" />
             </a>
           </div>
