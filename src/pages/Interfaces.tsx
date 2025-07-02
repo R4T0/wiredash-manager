@@ -81,7 +81,6 @@ const Interfaces = () => {
         
         if (responseData.success && responseData.status === 200) {
           setConnectionValid(true);
-          await fetchInterfaces();
         } else {
           setConnectionValid(false);
         }
@@ -95,6 +94,16 @@ const Interfaces = () => {
 
     checkConnection();
   }, []);
+
+  // Fetch interfaces when connection is valid and router config is loaded
+  useEffect(() => {
+    if (connectionValid === true && routerConfig) {
+      console.log('Connection valid, fetching interfaces...');
+      fetchInterfaces();
+    } else if (connectionValid === false) {
+      setIsLoading(false);
+    }
+  }, [connectionValid, routerConfig]);
 
   // Make API request through backend proxy
   const makeProxyRequest = async (path: string, method: string = 'GET', body?: any) => {
@@ -127,11 +136,6 @@ const Interfaces = () => {
   };
 
   const fetchInterfaces = async () => {
-    if (connectionValid === false) {
-      setIsLoading(false);
-      return;
-    }
-
     try {
       console.log('Fetching WireGuard interfaces via backend proxy...');
 
