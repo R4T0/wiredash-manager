@@ -24,7 +24,7 @@ const Footer = () => {
           
           <div className="flex items-center space-x-4">
             <a
-              href="https://github.com/CloudDualtec/wiredash"
+              href="https://github.com/CloudDualtec/wiredash-manager"
               target="_blank"
               rel="noopener noreferrer"
               className="flex items-center space-x-2 text-gray-400 hover:text-white transition-colors"
@@ -37,7 +37,7 @@ const Footer = () => {
         
         <div className="mt-4 pt-4 border-t border-gray-700">
           <p className="text-center text-xs text-gray-500">
-            WireDash v1.0.0 - Gerenciador WireGuard para Mikrotik, OPNsense e pfSense
+            WireDash v1.0.0 - Gerenciador WireGuard para Mikrotik, OPNsense, pfSense etc
           </p>
         </div>
       </div>
