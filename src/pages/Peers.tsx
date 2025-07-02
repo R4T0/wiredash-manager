@@ -88,7 +88,7 @@ const Peers = () => {
   const totalPeers = displayPeers.length;
   const onlinePeers = displayPeers.filter(peer => {
     // Handle both string and boolean values for disabled field
-    const isDisabled = peer.disabled === true || peer.disabled === 'true';
+    const isDisabled = peer.disabled === true || (typeof peer.disabled === 'string' && peer.disabled === 'true');
     return !isDisabled;
   }).length;
   const recentPeers = Math.ceil(totalPeers * 0.6);
@@ -160,7 +160,7 @@ const Peers = () => {
 
   const isPeerActive = (peer: any) => {
     // Handle both string and boolean values for disabled field
-    const isDisabled = peer.disabled === true || peer.disabled === 'true';
+    const isDisabled = peer.disabled === true || (typeof peer.disabled === 'string' && peer.disabled === 'true');
     return !isDisabled;
   };
 
