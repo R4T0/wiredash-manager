@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Network, Plus, Edit, Trash2, Power, PowerOff, Activity, Clock, CheckCircle } from 'lucide-react';
+import { Network, Plus, Edit, Trash2, Power, PowerOff, Activity, Clock, CheckCircle, AlertCircle, Settings } from 'lucide-react';
 import StatsCard from '../components/StatsCard';
 import WireGuardInterfaceModal from '../components/WireGuardInterfaceModal';
 import WireGuardEditModal from '../components/WireGuardEditModal';
 import { useToast } from '@/hooks/use-toast';
+import { useNavigate } from 'react-router-dom';
 
 interface WireGuardInterface {
   '.id': string;
@@ -27,7 +28,63 @@ const Interfaces = () => {
   const [editingInterface, setEditingInterface] = useState<WireGuardInterface | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const [connectionValid, setConnectionValid] = useState<boolean | null>(null);
+  const [isCheckingConnection, setIsCheckingConnection] = useState(true);
   const { toast } = useToast();
+  const navigate = useNavigate();
+
+  // Check router connection validity
+  useEffect(() => {
+    const checkConnection = async () => {
+      const savedConfig = localStorage.getItem('routerConfig');
+      if (!savedConfig) {
+        setConnectionValid(false);
+        setIsCheckingConnection(false);
+        return;
+      }
+
+      const config = JSON.parse(savedConfig);
+      if (!config.endpoint || !config.user || !config.password) {
+        setConnectionValid(false);
+        setIsCheckingConnection(false);
+        return;
+      }
+
+      try {
+        const response = await fetch('http://localhost:5000/api/router/test-connection', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            routerType: config.routerType,
+            endpoint: config.endpoint,
+            port: config.port,
+            user: config.user,
+            password: config.password,
+            useHttps: config.useHttps
+          }),
+          signal: AbortSignal.timeout(10000)
+        });
+
+        const responseData = await response.json();
+        
+        if (responseData.success && responseData.status === 200) {
+          setConnectionValid(true);
+          await fetchInterfaces();
+        } else {
+          setConnectionValid(false);
+        }
+      } catch (error) {
+        console.error('Connection test failed:', error);
+        setConnectionValid(false);
+      } finally {
+        setIsCheckingConnection(false);
+      }
+    };
+
+    checkConnection();
+  }, []);
 
   // Make API request through backend proxy
   const makeProxyRequest = async (path: string, method: string = 'GET', body?: any) => {
@@ -63,30 +120,12 @@ const Interfaces = () => {
   };
 
   const fetchInterfaces = async () => {
+    if (connectionValid === false) {
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      const savedConfig = localStorage.getItem('routerConfig');
-      if (!savedConfig) {
-        toast({
-          title: "Configuração não encontrada",
-          description: "Configure a conexão com o roteador nas Configurações primeiro.",
-          variant: "destructive"
-        });
-        setIsLoading(false);
-        return;
-      }
-
-      const config = JSON.parse(savedConfig);
-      
-      if (!config.endpoint || !config.user || !config.password) {
-        toast({
-          title: "Configuração incompleta",
-          description: "Verifique as configurações de conexão com o roteador.",
-          variant: "destructive"
-        });
-        setIsLoading(false);
-        return;
-      }
-
       console.log('Fetching WireGuard interfaces via backend proxy...');
 
       const response = await makeProxyRequest('/rest/interface/wireguard', 'GET');
@@ -110,6 +149,7 @@ const Interfaces = () => {
           description: responseData.error || "Falha ao conectar com o roteador.",
           variant: "destructive"
         });
+        setConnectionValid(false);
       }
     } catch (error) {
       console.error('Error fetching interfaces:', error);
@@ -118,6 +158,7 @@ const Interfaces = () => {
         description: "Não foi possível conectar ao backend. Verifique se o serviço está executando.",
         variant: "destructive"
       });
+      setConnectionValid(false);
     } finally {
       setIsLoading(false);
     }
@@ -148,7 +189,7 @@ const Interfaces = () => {
           title: `Interface ${willDisable ? 'desabilitada' : 'habilitada'}`,
           description: `Interface ${interfaceName} foi ${willDisable ? 'desabilitada' : 'habilitada'} com sucesso.`,
         });
-        await fetchInterfaces(); // Refresh the list
+        await fetchInterfaces();
       } else {
         toast({
           title: `Erro ao ${action} interface`,
@@ -188,7 +229,7 @@ const Interfaces = () => {
           title: "Interface deletada",
           description: `Interface ${interfaceName} foi deletada com sucesso.`,
         });
-        await fetchInterfaces(); // Refresh the list
+        await fetchInterfaces();
       } else {
         toast({
           title: "Erro ao deletar interface",
@@ -219,10 +260,6 @@ const Interfaces = () => {
     await fetchInterfaces();
   };
 
-  useEffect(() => {
-    fetchInterfaces();
-  }, []);
-
   const totalInterfaces = interfaces.length;
   const activeInterfaces = interfaces.filter(iface => iface.running === 'true').length;
   const enabledInterfaces = interfaces.filter(iface => iface.disabled === 'false').length;
@@ -252,13 +289,45 @@ const Interfaces = () => {
     }
   ];
 
-  if (isLoading) {
+  if (isCheckingConnection) {
     return (
       <Layout>
         <div className="space-y-8 animate-fade-in">
           <div className="flex items-center justify-center min-h-[400px]">
-            <div className="text-white">Carregando interfaces...</div>
+            <div className="text-white">Verificando conexão com o roteador...</div>
           </div>
+        </div>
+      </Layout>
+    );
+  }
+
+  if (connectionValid === false) {
+    return (
+      <Layout>
+        <div className="space-y-8 animate-fade-in">
+          <div>
+            <h1 className="text-4xl font-bold text-white mb-2">Gerenciar Interfaces</h1>
+            <p className="text-gray-400 text-lg">Visualize e gerencie todas as interfaces WireGuard</p>
+          </div>
+
+          <Card className="bg-gray-900/50 border-gray-800">
+            <CardContent className="p-8">
+              <div className="text-center">
+                <AlertCircle className="w-16 h-16 text-red-400 mx-auto mb-4" />
+                <h2 className="text-xl font-semibold text-white mb-2">Erro de Conexão</h2>
+                <p className="text-gray-400 mb-6">
+                  Não foi possível conectar ao roteador. Verifique as configurações de conexão.
+                </p>
+                <Button 
+                  onClick={() => navigate('/settings')}
+                  className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white"
+                >
+                  <Settings className="w-4 h-4 mr-2" />
+                  Ir para Configurações
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       </Layout>
     );
@@ -312,7 +381,11 @@ const Interfaces = () => {
             </div>
           </CardHeader>
           <CardContent>
-            {interfaces.length === 0 ? (
+            {isLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <div className="text-white">Carregando interfaces...</div>
+              </div>
+            ) : interfaces.length === 0 ? (
               <div className="text-center py-8">
                 <Network className="w-12 h-12 text-gray-500 mx-auto mb-4" />
                 <p className="text-gray-400 mb-2">Nenhuma interface WireGuard encontrada</p>
