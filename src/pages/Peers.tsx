@@ -86,9 +86,11 @@ const Peers = () => {
 
   const displayPeers = connectionValid && isMikrotik && peers.length >= 0 ? peers : [];
   const totalPeers = displayPeers.length;
-  const onlinePeers = displayPeers.filter(peer => 
-    peer.disabled === 'false' || peer.disabled === false || !peer.disabled
-  ).length;
+  const onlinePeers = displayPeers.filter(peer => {
+    // Handle both string and boolean values for disabled field
+    const isDisabled = peer.disabled === true || peer.disabled === 'true';
+    return !isDisabled;
+  }).length;
   const recentPeers = Math.ceil(totalPeers * 0.6);
 
   const stats = [
@@ -157,7 +159,9 @@ const Peers = () => {
   };
 
   const isPeerActive = (peer: any) => {
-    return peer.disabled === 'false' || peer.disabled === false || !peer.disabled;
+    // Handle both string and boolean values for disabled field
+    const isDisabled = peer.disabled === true || peer.disabled === 'true';
+    return !isDisabled;
   };
 
   if (isCheckingConnection) {
