@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { apiService } from '@/services/api';
 
@@ -42,7 +41,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useEffect(() => {
     const loadInitialData = async () => {
       try {
-        // Check for saved current user first
+        // FIRST: Restore user from localStorage immediately to prevent logout on refresh
         const savedCurrentUser = localStorage.getItem('current_user');
         if (savedCurrentUser) {
           try {
@@ -55,11 +54,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           }
         }
 
-        // Load users from API, with fallback to localStorage
-        await loadUsers();
+        // SECOND: Load users from API in background, with fallback to localStorage
+        try {
+          await loadUsers();
+        } catch (error) {
+          console.error('Error loading users from API:', error);
+          // Fallback to localStorage if API fails
+          await loadUsersFromLocalStorage();
+        }
       } catch (error) {
         console.error('Error loading initial data:', error);
-        // Fallback to localStorage if API fails
+        // Fallback to localStorage if everything fails
         await loadUsersFromLocalStorage();
       } finally {
         setIsLoading(false);
