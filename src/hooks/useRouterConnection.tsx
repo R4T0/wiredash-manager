@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useApiLogsContext } from '@/contexts/ApiLogsContext';
@@ -107,12 +108,11 @@ export const useRouterConnection = () => {
     }
 
     setIsTestingConnection(true);
-    console.log(`Testing connection with ${selectedRouter} router via backend proxy...`);
+    console.log(`Testing connection with ${selectedRouter} router via API service...`);
 
     const startTime = Date.now();
-    const proxyUrl = 'http://localhost:5000/api/router/test-connection';
     
-    const requestBody = {
+    const requestData = {
       routerType: selectedRouter,
       endpoint: formData.endpoint,
       port: formData.port,
@@ -122,25 +122,26 @@ export const useRouterConnection = () => {
     };
 
     try {
-      console.log(`Making request to backend proxy for ${selectedRouter}...`, requestBody);
+      console.log(`Making request to API service for ${selectedRouter}...`, requestData);
       
-      const response = await fetch(proxyUrl, {
+      // Use the API service for test connection
+      const response = await fetch('http://localhost:5000/api/router/test-connection', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify(requestBody),
+        body: JSON.stringify(requestData),
         signal: AbortSignal.timeout(15000)
       });
 
       const duration = Date.now() - startTime;
       const responseData = await response.json();
       
-      console.log('Backend proxy response:', responseData);
+      console.log('API service response:', responseData);
 
       addLog({
         method: 'POST',
-        url: proxyUrl,
+        url: '/api/router/test-connection',
         status: response.status,
         requestHeaders: { 'Content-Type': 'application/json' },
         responseHeaders: Object.fromEntries(response.headers.entries()),
@@ -152,7 +153,7 @@ export const useRouterConnection = () => {
         const routerName = routerTypes.find(r => r.id === selectedRouter)?.name || selectedRouter;
         toast({
           title: "✅ Conexão bem-sucedida!",
-          description: `A conexão ${formData.useHttps ? 'HTTPS' : 'HTTP'} com o roteador ${routerName} foi estabelecida com sucesso via proxy.`,
+          description: `A conexão ${formData.useHttps ? 'HTTPS' : 'HTTP'} com o roteador ${routerName} foi estabelecida com sucesso.`,
         });
       } else {
         toast({
@@ -165,11 +166,11 @@ export const useRouterConnection = () => {
       const duration = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : 'Erro desconhecido';
       
-      console.error('Backend proxy request failed:', error);
+      console.error('API service request failed:', error);
       
       addLog({
         method: 'POST',
-        url: proxyUrl,
+        url: '/api/router/test-connection',
         requestHeaders: { 'Content-Type': 'application/json' },
         error: errorMessage,
         duration
@@ -177,7 +178,7 @@ export const useRouterConnection = () => {
 
       toast({
         title: "❌ Erro de conexão",
-        description: `Não foi possível conectar ao backend proxy. Verifique se o serviço está executando em localhost:5000.`,
+        description: `Não foi possível conectar ao serviço de API. Verifique se o backend está executando.`,
         variant: "destructive"
       });
     } finally {

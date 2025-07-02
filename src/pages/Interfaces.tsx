@@ -29,6 +29,39 @@ const Interfaces = () => {
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const { toast } = useToast();
 
+  // Make API request through backend proxy
+  const makeProxyRequest = async (path: string, method: string = 'GET', body?: any) => {
+    const savedConfig = localStorage.getItem('routerConfig');
+    if (!savedConfig) {
+      throw new Error('Router configuration not found');
+    }
+
+    const config = JSON.parse(savedConfig);
+    
+    const requestBody = {
+      routerType: config.routerType || 'mikrotik',
+      endpoint: config.endpoint,
+      port: config.port,
+      user: config.user,
+      password: config.password,
+      useHttps: config.useHttps,
+      path: path,
+      method: method,
+      ...(body && { body })
+    };
+
+    const response = await fetch('http://localhost:5000/api/router/proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody),
+      signal: AbortSignal.timeout(15000)
+    });
+
+    return response;
+  };
+
   const fetchInterfaces = async () => {
     try {
       const savedConfig = localStorage.getItem('routerConfig');
@@ -54,31 +87,11 @@ const Interfaces = () => {
         return;
       }
 
-      const proxyUrl = 'http://localhost:5000/api/router/proxy';
-      
-      const requestBody = {
-        routerType: config.routerType || 'mikrotik',
-        endpoint: config.endpoint,
-        port: config.port,
-        user: config.user,
-        password: config.password,
-        useHttps: config.useHttps,
-        path: '/rest/interface/wireguard',
-        method: 'GET'
-      };
+      console.log('Fetching WireGuard interfaces via backend proxy...');
 
-      console.log('Fetching WireGuard interfaces...', requestBody);
-
-      const response = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(15000)
-      });
-
+      const response = await makeProxyRequest('/rest/interface/wireguard', 'GET');
       const responseData = await response.json();
+      
       console.log('WireGuard interfaces response:', responseData);
 
       if (responseData.success && responseData.status === 200) {
@@ -121,42 +134,10 @@ const Interfaces = () => {
     setTogglingId(interfaceId);
 
     try {
-      const savedConfig = localStorage.getItem('routerConfig');
-      if (!savedConfig) {
-        toast({
-          title: "Configuração não encontrada",
-          description: "Configure a conexão com o roteador primeiro.",
-          variant: "destructive"
-        });
-        return;
-      }
+      console.log('Toggling WireGuard interface via backend proxy...');
 
-      const config = JSON.parse(savedConfig);
-      const proxyUrl = 'http://localhost:5000/api/router/proxy';
-      
-      const requestBody = {
-        routerType: config.routerType || 'mikrotik',
-        endpoint: config.endpoint,
-        port: config.port,
-        user: config.user,
-        password: config.password,
-        useHttps: config.useHttps,
-        path: `/rest/interface/wireguard/${interfaceId}`,
-        method: 'PATCH',
-        body: {
-          disabled: willDisable
-        }
-      };
-
-      console.log('Toggling WireGuard interface...', requestBody);
-
-      const response = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(15000)
+      const response = await makeProxyRequest(`/rest/interface/wireguard/${interfaceId}`, 'PATCH', {
+        disabled: willDisable
       });
 
       const responseData = await response.json();
@@ -195,42 +176,11 @@ const Interfaces = () => {
     setDeletingId(interfaceId);
 
     try {
-      const savedConfig = localStorage.getItem('routerConfig');
-      if (!savedConfig) {
-        toast({
-          title: "Configuração não encontrada",
-          description: "Configure a conexão com o roteador primeiro.",
-          variant: "destructive"
-        });
-        return;
-      }
+      console.log('Deleting WireGuard interface via backend proxy...');
 
-      const config = JSON.parse(savedConfig);
-      const proxyUrl = 'http://localhost:5000/api/router/proxy';
-      
-      const requestBody = {
-        routerType: config.routerType || 'mikrotik',
-        endpoint: config.endpoint,
-        port: config.port,
-        user: config.user,
-        password: config.password,
-        useHttps: config.useHttps,
-        path: `/rest/interface/wireguard/${interfaceId}`,
-        method: 'DELETE'
-      };
-
-      console.log('Deleting WireGuard interface...', requestBody);
-
-      const response = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(15000)
-      });
-
+      const response = await makeProxyRequest(`/rest/interface/wireguard/${interfaceId}`, 'DELETE');
       const responseData = await response.json();
+      
       console.log('Delete interface response:', responseData);
 
       if (responseData.success) {

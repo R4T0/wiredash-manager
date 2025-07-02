@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useApiLogsContext } from '@/contexts/ApiLogsContext';
+import { apiService } from '@/services/api';
 
 interface WireguardPeer {
   id: string;
@@ -41,14 +42,15 @@ export const useWireguardPeers = () => {
     return result;
   };
 
-  // Get endpoint port from interface configuration
-  const getEndpointPort = async (interfaceName: string) => {
+  // Make API request through backend proxy
+  const makeProxyRequest = async (path: string, method: string = 'GET', body?: any) => {
     const savedConfig = localStorage.getItem('routerConfig');
-    if (!savedConfig) return 51820; // default WireGuard port
+    if (!savedConfig) {
+      throw new Error('Router configuration not found');
+    }
 
     const config = JSON.parse(savedConfig);
-    const proxyUrl = 'http://localhost:5000/api/router/proxy';
-
+    
     const requestBody = {
       routerType: config.routerType,
       endpoint: config.endpoint,
@@ -56,22 +58,29 @@ export const useWireguardPeers = () => {
       user: config.user,
       password: config.password,
       useHttps: config.useHttps,
-      path: '/rest/interface/wireguard',
-      method: 'GET'
+      path: path,
+      method: method,
+      ...(body && { body })
     };
 
+    const response = await fetch('http://localhost:5000/api/router/proxy', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(requestBody),
+      signal: AbortSignal.timeout(15000)
+    });
+
+    return response;
+  };
+
+  // Get endpoint port from interface configuration
+  const getEndpointPort = async (interfaceName: string) => {
     try {
       console.log('Fetching interface port for:', interfaceName);
       
-      const response = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(15000)
-      });
-
+      const response = await makeProxyRequest('/rest/interface/wireguard', 'GET');
       const responseData = await response.json();
       
       if (responseData.success && responseData.data) {
@@ -107,31 +116,11 @@ export const useWireguardPeers = () => {
 
     setIsLoading(true);
     const startTime = Date.now();
-    const proxyUrl = 'http://localhost:5000/api/router/proxy';
-
-    const requestBody = {
-      routerType: config.routerType,
-      endpoint: config.endpoint,
-      port: config.port,
-      user: config.user,
-      password: config.password,
-      useHttps: config.useHttps,
-      path: '/rest/interface/wireguard/peers',
-      method: 'GET'
-    };
 
     try {
-      console.log('Fetching WireGuard peers from Mikrotik...', requestBody);
+      console.log('Fetching WireGuard peers from Mikrotik via backend proxy...');
       
-      const response = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(15000)
-      });
-
+      const response = await makeProxyRequest('/rest/interface/wireguard/peers', 'GET');
       const duration = Date.now() - startTime;
       const responseData = await response.json();
       
@@ -206,7 +195,6 @@ export const useWireguardPeers = () => {
 
     setIsCreating(true);
     const startTime = Date.now();
-    const proxyUrl = 'http://localhost:5000/api/router/proxy';
 
     // Get the correct endpoint port from the selected interface
     const endpointPort = await getEndpointPort(peerData.interface);
@@ -217,37 +205,19 @@ export const useWireguardPeers = () => {
     console.log('Creating peer with interface port:', endpointPort);
 
     const requestBody = {
-      routerType: config.routerType,
-      endpoint: config.endpoint,
-      port: config.port,
-      user: config.user,
-      password: config.password,
-      useHttps: config.useHttps,
-      path: '/rest/interface/wireguard/peers',
-      method: 'PUT',
-      body: {
-        name: peerData.name,
-        interface: peerData.interface,
-        'public-key': publicKey,
-        'private-key': '', // Let Mikrotik generate the private key
-        'allowed-address': peerData['allowed-address'],
-        'endpoint-address': peerData['endpoint-address'],
-        'endpoint-port': endpointPort
-      }
+      name: peerData.name,
+      interface: peerData.interface,
+      'public-key': publicKey,
+      'private-key': '', // Let Mikrotik generate the private key
+      'allowed-address': peerData['allowed-address'],
+      'endpoint-address': peerData['endpoint-address'],
+      'endpoint-port': endpointPort
     };
 
     try {
-      console.log('Creating WireGuard peer with payload:', requestBody.body);
+      console.log('Creating WireGuard peer with payload:', requestBody);
       
-      const response = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(15000)
-      });
-
+      const response = await makeProxyRequest('/rest/interface/wireguard/peers', 'PUT', requestBody);
       const duration = Date.now() - startTime;
       const responseData = await response.json();
       
@@ -259,7 +229,7 @@ export const useWireguardPeers = () => {
         status: response.status,
         requestHeaders: { 'Content-Type': 'application/json' },
         responseHeaders: Object.fromEntries(response.headers.entries()),
-        requestBody: JSON.stringify(requestBody.body),
+        requestBody: JSON.stringify(requestBody),
         responseBody: JSON.stringify(responseData),
         duration
       });
@@ -292,7 +262,7 @@ export const useWireguardPeers = () => {
         method: 'PUT',
         url: '/rest/interface/wireguard/peers',
         requestHeaders: { 'Content-Type': 'application/json' },
-        requestBody: JSON.stringify(requestBody.body),
+        requestBody: JSON.stringify(requestBody),
         error: errorMessage,
         duration
       });
@@ -330,31 +300,11 @@ export const useWireguardPeers = () => {
     }
 
     const startTime = Date.now();
-    const proxyUrl = 'http://localhost:5000/api/router/proxy';
-
-    const requestBody = {
-      routerType: config.routerType,
-      endpoint: config.endpoint,
-      port: config.port,
-      user: config.user,
-      password: config.password,
-      useHttps: config.useHttps,
-      path: `/rest/interface/wireguard/peers/${peerId}`,
-      method: 'DELETE'
-    };
 
     try {
-      console.log('Deleting peer...', requestBody);
+      console.log('Deleting peer via backend proxy...');
 
-      const response = await fetch(proxyUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(requestBody),
-        signal: AbortSignal.timeout(15000)
-      });
-
+      const response = await makeProxyRequest(`/rest/interface/wireguard/peers/${peerId}`, 'DELETE');
       const duration = Date.now() - startTime;
       
       // Handle empty response body for DELETE operations
