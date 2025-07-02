@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -11,6 +12,7 @@ import QRCodeModal from '../components/QRCodeModal';
 import { useWireguardPeers } from '../hooks/useWireguardPeers';
 import { useToast } from '@/hooks/use-toast';
 import { useNavigate } from 'react-router-dom';
+import { apiService } from '@/services/api';
 
 const Peers = () => {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
@@ -24,40 +26,49 @@ const Peers = () => {
   const [isDeleting, setIsDeleting] = useState(false);
   const [connectionValid, setConnectionValid] = useState<boolean | null>(null);
   const [isCheckingConnection, setIsCheckingConnection] = useState(true);
+  const [routerConfig, setRouterConfig] = useState<any>(null);
   const { peers, isLoading, isCreating, createPeer, fetchPeers, deletePeer } = useWireguardPeers();
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // Check router connection validity
+  // Check router connection validity using the same API that saves configs
   useEffect(() => {
     const checkConnection = async () => {
-      const savedConfig = localStorage.getItem('routerConfig');
-      if (!savedConfig) {
-        setConnectionValid(false);
-        setIsCheckingConnection(false);
-        return;
-      }
-
-      const config = JSON.parse(savedConfig);
-      if (!config.endpoint || !config.user || !config.password) {
-        setConnectionValid(false);
-        setIsCheckingConnection(false);
-        return;
-      }
-
       try {
+        console.log('Loading router configuration from SQLite API...');
+        const configResponse = await apiService.getRouterConfig();
+        
+        if (!configResponse.success || !configResponse.data) {
+          console.log('No router configuration found in SQLite database');
+          setConnectionValid(false);
+          setIsCheckingConnection(false);
+          return;
+        }
+
+        const config = configResponse.data;
+        console.log('Router configuration loaded:', config);
+        setRouterConfig(config);
+
+        if (!config.endpoint || !config.user || !config.password) {
+          console.log('Router configuration incomplete');
+          setConnectionValid(false);
+          setIsCheckingConnection(false);
+          return;
+        }
+
+        // Test the connection using the same API endpoint
         const response = await fetch('http://localhost:5000/api/router/test-connection', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            routerType: config.routerType,
+            routerType: config.router_type,
             endpoint: config.endpoint,
             port: config.port,
             user: config.user,
             password: config.password,
-            useHttps: config.useHttps
+            useHttps: config.use_https
           }),
           signal: AbortSignal.timeout(10000)
         });
@@ -81,8 +92,7 @@ const Peers = () => {
   }, []);
 
   // Check if router is Mikrotik
-  const savedConfig = localStorage.getItem('routerConfig');
-  const isMikrotik = savedConfig ? JSON.parse(savedConfig).routerType === 'mikrotik' : false;
+  const isMikrotik = routerConfig?.router_type === 'mikrotik';
 
   const displayPeers = connectionValid && isMikrotik && peers.length >= 0 ? peers : [];
   const totalPeers = displayPeers.length;
