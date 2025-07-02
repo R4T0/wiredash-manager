@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Plus } from 'lucide-react';
+import { apiService } from '@/services/api';
 
 interface CreatePeerModalProps {
   isOpen: boolean;
@@ -32,6 +33,15 @@ interface WireguardConfig {
   dnsCliente: string;
 }
 
+interface RouterConfig {
+  routerType: string;
+  endpoint: string;
+  port: string;
+  user: string;
+  password: string;
+  useHttps: boolean;
+}
+
 const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
   isOpen,
   onClose,
@@ -52,28 +62,98 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
     rangeIpsPermitidos: '',
     dnsCliente: ''
   });
+  const [routerConfig, setRouterConfig] = useState<RouterConfig>({
+    routerType: 'mikrotik',
+    endpoint: '',
+    port: '',
+    user: '',
+    password: '',
+    useHttps: false
+  });
   const [existingPeers, setExistingPeers] = useState<any[]>([]);
 
-  // Load WireGuard default configuration
+  // Load WireGuard and Router configurations from SQLite database
   useEffect(() => {
-    try {
-      const savedConfig = localStorage.getItem('wireguardConfig');
-      if (savedConfig) {
-        const config = JSON.parse(savedConfig);
-        setWireguardConfig(config);
+    const loadConfigurations = async () => {
+      try {
+        // Load WireGuard configuration
+        console.log('Loading WireGuard configuration from SQLite database...');
+        const wgResponse = await apiService.getWireguardConfig();
         
-        // Set endpoint address from default config
-        if (config.endpointPadrao) {
-          setFormData(prev => ({
-            ...prev,
-            'endpoint-address': config.endpointPadrao
-          }));
+        if (wgResponse.success && wgResponse.data) {
+          const config = wgResponse.data;
+          console.log('WireGuard configuration loaded from SQLite:', config);
+          const wgConfig = {
+            endpointPadrao: config.endpoint_padrao || '',
+            portaPadrao: config.porta_padrao || '',
+            rangeIpsPermitidos: config.range_ips_permitidos || '',
+            dnsCliente: config.dns_cliente || ''
+          };
+          setWireguardConfig(wgConfig);
+          
+          // Set endpoint address from default config
+          if (wgConfig.endpointPadrao) {
+            setFormData(prev => ({
+              ...prev,
+              'endpoint-address': wgConfig.endpointPadrao
+            }));
+          }
+        }
+
+        // Load Router configuration
+        console.log('Loading router configuration from SQLite database...');
+        const routerResponse = await apiService.getRouterConfig();
+        
+        if (routerResponse.success && routerResponse.data) {
+          const config = routerResponse.data;
+          console.log('Router configuration loaded from SQLite:', config);
+          setRouterConfig({
+            routerType: config.router_type || 'mikrotik',
+            endpoint: config.endpoint || '',
+            port: config.port || '',
+            user: config.user || '',
+            password: config.password || '',
+            useHttps: config.use_https || false
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load configurations from SQLite database:', error);
+        // Fallback to localStorage if API fails
+        try {
+          const savedWgConfig = localStorage.getItem('wireguardConfig');
+          if (savedWgConfig) {
+            const config = JSON.parse(savedWgConfig);
+            setWireguardConfig(config);
+            if (config.endpointPadrao) {
+              setFormData(prev => ({
+                ...prev,
+                'endpoint-address': config.endpointPadrao
+              }));
+            }
+          }
+
+          const savedRouterConfig = localStorage.getItem('routerConfig');
+          if (savedRouterConfig) {
+            const config = JSON.parse(savedRouterConfig);
+            setRouterConfig({
+              routerType: config.routerType || 'mikrotik',
+              endpoint: config.endpoint || '',
+              port: config.port || '',
+              user: config.user || '',
+              password: config.password || '',
+              useHttps: config.useHttps || false
+            });
+          }
+        } catch (localError) {
+          console.error('Error loading from localStorage fallback:', localError);
         }
       }
-    } catch (error) {
-      console.error('Error loading WireGuard config:', error);
+    };
+
+    if (isOpen) {
+      loadConfigurations();
     }
-  }, []);
+  }, [isOpen]);
 
   // Fetch existing peers to calculate next available IP
   useEffect(() => {
@@ -83,21 +163,17 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
   }, [isOpen]);
 
   const fetchExistingPeers = async () => {
-    const savedConfig = localStorage.getItem('routerConfig');
-    if (!savedConfig) return;
-
-    const config = JSON.parse(savedConfig);
-    if (config.routerType !== 'mikrotik') return;
+    if (routerConfig.routerType !== 'mikrotik') return;
 
     const proxyUrl = 'http://localhost:5000/api/router/proxy';
 
     const requestBody = {
-      routerType: config.routerType,
-      endpoint: config.endpoint,
-      port: config.port,
-      user: config.user,
-      password: config.password,
-      useHttps: config.useHttps,
+      routerType: routerConfig.routerType,
+      endpoint: routerConfig.endpoint,
+      port: routerConfig.port,
+      user: routerConfig.user,
+      password: routerConfig.password,
+      useHttps: routerConfig.useHttps,
       path: '/rest/interface/wireguard/peers',
       method: 'GET'
     };
@@ -172,25 +248,21 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
     if (isOpen) {
       fetchWireguardInterfaces();
     }
-  }, [isOpen]);
+  }, [isOpen, routerConfig]);
 
   const fetchWireguardInterfaces = async () => {
-    const savedConfig = localStorage.getItem('routerConfig');
-    if (!savedConfig) return;
-
-    const config = JSON.parse(savedConfig);
-    if (config.routerType !== 'mikrotik') return;
+    if (routerConfig.routerType !== 'mikrotik') return;
 
     setIsLoadingInterfaces(true);
     const proxyUrl = 'http://localhost:5000/api/router/proxy';
 
     const requestBody = {
-      routerType: config.routerType,
-      endpoint: config.endpoint,
-      port: config.port,
-      user: config.user,
-      password: config.password,
-      useHttps: config.useHttps,
+      routerType: routerConfig.routerType,
+      endpoint: routerConfig.endpoint,
+      port: routerConfig.port,
+      user: routerConfig.user,
+      password: routerConfig.password,
+      useHttps: routerConfig.useHttps,
       path: '/rest/interface/wireguard',
       method: 'GET'
     };
@@ -251,6 +323,24 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
       interface: value
     }));
   };
+
+  // Get router type display name and firewall terminology
+  const getRouterDisplayInfo = () => {
+    switch (routerConfig.routerType) {
+      case 'mikrotik':
+        return { name: 'Mikrotik', firewall: 'Mikrotik API' };
+      case 'opnsense':
+        return { name: 'OPNsense', firewall: 'OPNsense API' };
+      case 'pfsense':
+        return { name: 'pfSense', firewall: 'pfSense API' };
+      case 'unifi':
+        return { name: 'UniFi', firewall: 'UniFi API' };
+      default:
+        return { name: routerConfig.routerType, firewall: 'Router API' };
+    }
+  };
+
+  const routerInfo = getRouterDisplayInfo();
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -343,7 +433,8 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
 
           <div className="bg-gray-800/50 p-3 rounded-lg border border-gray-700">
             <p className="text-sm text-gray-400">
-              <strong>Nota:</strong> Os campos são preenchidos automaticamente com base nas configurações padrão do WireGuard. A chave pública e porta do endpoint serão gerados automaticamente.
+              <strong>Nota:</strong> Os campos são preenchidos automaticamente com base nas configurações padrão do WireGuard. 
+              A chave pública e porta do endpoint serão gerados automaticamente via {routerInfo.firewall}.
             </p>
           </div>
 
