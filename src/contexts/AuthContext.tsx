@@ -71,9 +71,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                     }
                   }
                 } catch (error) {
-                  // Se API falhar, mantém usuário logado temporariamente
+                  // Se API falhar, mantém usuário logado e tenta novamente
                   setCurrentUser(parsedUser);
-                  console.log('Cannot validate user against SQLite, keeping session temporarily:', parsedUser.email);
+                  console.log('Cannot validate user against SQLite, keeping session and will retry:', parsedUser.email);
                 }
               } else {
                 // Sessão expirada
@@ -144,9 +144,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentUser(user);
         localStorage.setItem('current_user', JSON.stringify(user));
         
-        // Cria sessão com validade de 24 horas
+        // Cria sessão com validade de 7 dias
         const sessionToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-        const sessionExpiry = new Date().getTime() + (24 * 60 * 60 * 1000); // 24 horas
+        const sessionExpiry = new Date().getTime() + (7 * 24 * 60 * 60 * 1000); // 7 dias
         localStorage.setItem('session_token', sessionToken);
         localStorage.setItem('session_expiry', sessionExpiry.toString());
         
@@ -162,9 +162,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setCurrentUser(user);
         localStorage.setItem('current_user', JSON.stringify(user));
         
-        // Cria sessão com validade de 24 horas
+        // Cria sessão com validade de 7 dias
         const sessionToken = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
-        const sessionExpiry = new Date().getTime() + (24 * 60 * 60 * 1000); // 24 horas
+        const sessionExpiry = new Date().getTime() + (7 * 24 * 60 * 60 * 1000); // 7 dias
         localStorage.setItem('session_token', sessionToken);
         localStorage.setItem('session_expiry', sessionExpiry.toString());
         

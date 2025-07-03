@@ -34,9 +34,20 @@ const AppSidebar = () => {
   const [connectionStatus, setConnectionStatus] = useState<'online' | 'offline' | 'testing'>('offline');
   const [routerType, setRouterType] = useState('Firewall');
 
-  // Testar conexão usando a mesma lógica do botão "Testar Conexão"
+  // Helper function to get the correct backend URL
+  const getBackendUrl = () => {
+    if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+      return 'http://localhost:5000';
+    }
+    
+    const protocol = window.location.protocol;
+    const hostname = window.location.hostname;
+    return `${protocol}//${hostname}:5000`;
+  };
+
+  // Testar conexão usando a configuração salva na API
   const testConnection = async (config: any) => {
-    const proxyUrl = 'http://localhost:5000/api/router/test-connection';
+    const backendUrl = getBackendUrl();
     const requestBody = {
       routerType: config.routerType,
       endpoint: config.endpoint,
@@ -46,7 +57,7 @@ const AppSidebar = () => {
       useHttps: config.useHttps
     };
     try {
-      const response = await fetch(proxyUrl, {
+      const response = await fetch(`${backendUrl}/api/router/test-connection`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
@@ -62,13 +73,16 @@ const AppSidebar = () => {
     }
   };
 
-  // Verificar status da conexão
+  // Verificar status da conexão baseado na configuração salva na API
   useEffect(() => {
     const checkConnectionStatus = async () => {
       try {
-        const savedConfig = localStorage.getItem('routerConfig');
-        if (savedConfig) {
-          const config = JSON.parse(savedConfig);
+        // Carrega configuração da API (não localStorage)
+        const response = await fetch(`${getBackendUrl()}/api/config/router`);
+        const configData = await response.json();
+        
+        if (configData.success && configData.data) {
+          const config = configData.data;
           if (config.endpoint && config.user && config.password) {
             setConnectionStatus('testing');
 
@@ -78,10 +92,18 @@ const AppSidebar = () => {
               'opnsense': 'OPNsense',
               'pfsense': 'pfSense'
             };
-            setRouterType(routerTypeMap[config.routerType] || 'Firewall');
+            setRouterType(routerTypeMap[config.router_type] || 'Firewall');
 
             // Testar conexão
-            const isConnected = await testConnection(config);
+            const configForTest = {
+              routerType: config.router_type,
+              endpoint: config.endpoint,
+              port: config.port,
+              user: config.user,
+              password: config.password,
+              useHttps: config.use_https
+            };
+            const isConnected = await testConnection(configForTest);
             setConnectionStatus(isConnected ? 'online' : 'offline');
           } else {
             setConnectionStatus('offline');
@@ -90,9 +112,11 @@ const AppSidebar = () => {
           setConnectionStatus('offline');
         }
       } catch (error) {
+        console.error('Failed to check router config:', error);
         setConnectionStatus('offline');
       }
     };
+    
     checkConnectionStatus();
 
     // Verificar a cada 30 segundos
