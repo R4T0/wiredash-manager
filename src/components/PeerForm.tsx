@@ -98,7 +98,7 @@ const PeerForm = () => {
           if (!savedConfig) return;
 
           const config = JSON.parse(savedConfig);
-          const proxyUrl = 'http://localhost:5000/api/router/proxy';
+          const proxyUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/router/proxy`;
 
           const requestBody = {
             routerType: config.routerType,
@@ -199,7 +199,7 @@ const PeerForm = () => {
         config = JSON.parse(savedConfig);
       }
 
-      const proxyUrl = 'http://localhost:5000/api/router/proxy';
+      const proxyUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/router/proxy`;
 
       const requestBody = {
         routerType: config.routerType,
