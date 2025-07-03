@@ -269,18 +269,9 @@ const Peers = () => {
   return (
     <Layout>
       <div className="space-y-8 animate-fade-in">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-4xl font-bold text-white mb-2">Gerenciar Peers</h1>
-            <p className="text-gray-400 text-lg">Visualize e gerencie todos os peers WireGuard do Mikrotik</p>
-          </div>
-          <Button 
-            onClick={() => setIsCreateModalOpen(true)}
-            className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
-          >
-            <Plus className="w-4 h-4 mr-2" />
-            Novo Peer
-          </Button>
+        <div>
+          <h1 className="text-4xl font-bold text-white mb-2">Gerenciar Peers</h1>
+          <p className="text-gray-400 text-lg">Visualize e gerencie todos os peers WireGuard do Mikrotik</p>
         </div>
 
         {/* Dashboard Stats */}
@@ -300,16 +291,27 @@ const Peers = () => {
 
         <Card className="bg-gray-900/50 border-gray-800">
           <CardHeader>
-            <CardTitle className="text-white flex items-center">
-              <Users className="w-5 h-5 mr-2" />
-              Lista de Peers
-              <span className="ml-2 text-xs bg-blue-600 px-2 py-1 rounded">
-                Mikrotik
-              </span>
-            </CardTitle>
-            <CardDescription>
-              Peers carregados do roteador Mikrotik
-            </CardDescription>
+            <div className="flex items-center justify-between">
+              <div>
+                <CardTitle className="text-white flex items-center">
+                  <Users className="w-5 h-5 mr-2" />
+                  Lista de Peers
+                  <span className="ml-2 text-xs bg-blue-600 px-2 py-1 rounded">
+                    Mikrotik
+                  </span>
+                </CardTitle>
+                <CardDescription>
+                  Peers carregados do roteador Mikrotik
+                </CardDescription>
+              </div>
+              <Button 
+                onClick={() => setIsCreateModalOpen(true)}
+                className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Novo Peer
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {isLoading ? (
