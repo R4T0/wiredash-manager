@@ -55,24 +55,24 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               const expiryTime = parseInt(sessionExpiry);
               
               if (now < expiryTime) {
-                // Verifica se o usuário ainda existe no SQLite
+                // Restaura usuário imediatamente e valida em background
+                setCurrentUser(parsedUser);
+                console.log('User session restored immediately:', parsedUser.email);
+                
+                // Verifica se o usuário ainda existe no SQLite em background
                 try {
                   const response = await apiService.getUsers();
                   if (response.success) {
                     const userExists = response.data.find((u: User) => u.id === parsedUser.id && u.enabled);
-                    if (userExists) {
-                      setCurrentUser(parsedUser);
-                      console.log('User session restored and validated against SQLite:', parsedUser.email);
-                    } else {
+                    if (!userExists) {
                       console.log('User not found in SQLite or disabled, logging out');
+                      setCurrentUser(null);
                       localStorage.removeItem('current_user');
                       localStorage.removeItem('session_token');
                       localStorage.removeItem('session_expiry');
                     }
                   }
                 } catch (error) {
-                  // Se API falhar, mantém usuário logado e tenta novamente
-                  setCurrentUser(parsedUser);
                   console.log('Cannot validate user against SQLite, keeping session and will retry:', parsedUser.email);
                 }
               } else {
