@@ -9,6 +9,7 @@ import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, Command
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { useToast } from '@/hooks/use-toast';
 import { useWireguardPeers } from '@/hooks/useWireguardPeers';
+import { apiService } from '@/services/api';
 import QRCode from 'qrcode';
 
 interface PeerFormData {
@@ -48,6 +49,12 @@ const PeerForm = () => {
   const [qrCodeUrl, setQrCodeUrl] = useState('');
   const [configContent, setConfigContent] = useState('');
   const [copied, setCopied] = useState(false);
+  const [wireguardGlobalConfig, setWireguardGlobalConfig] = useState({
+    endpointPadrao: '',
+    portaPadrao: '',
+    dnsCliente: ''
+  });
+  const [interfaceData, setInterfaceData] = useState<any>(null);
 
   // Filter peers based on search
   const filteredPeers = peers.filter(peer => {
@@ -61,6 +68,76 @@ const PeerForm = () => {
     return peerId === formData.selectedPeer;
   });
 
+  // Load WireGuard global configuration
+  useEffect(() => {
+    const loadGlobalConfig = async () => {
+      try {
+        const response = await apiService.getWireguardConfig();
+        if (response.success && response.data) {
+          const config = response.data;
+          setWireguardGlobalConfig({
+            endpointPadrao: config.endpoint_padrao || '',
+            portaPadrao: config.porta_padrao || '',
+            dnsCliente: config.dns_cliente || ''
+          });
+        }
+      } catch (error) {
+        console.error('Failed to load WireGuard global config:', error);
+      }
+    };
+
+    loadGlobalConfig();
+  }, []);
+
+  // Get interface data when peer is selected
+  useEffect(() => {
+    if (selectedPeerData && selectedPeerData.interface) {
+      const fetchInterfaceData = async () => {
+        try {
+          const savedConfig = localStorage.getItem('routerConfig');
+          if (!savedConfig) return;
+
+          const config = JSON.parse(savedConfig);
+          const proxyUrl = 'http://localhost:5000/api/router/proxy';
+
+          const requestBody = {
+            routerType: config.routerType,
+            endpoint: config.endpoint,
+            port: config.port,
+            user: config.user,
+            password: config.password,
+            useHttps: config.useHttps,
+            path: '/rest/interface/wireguard',
+            method: 'GET'
+          };
+
+          const response = await fetch(proxyUrl, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(requestBody),
+            signal: AbortSignal.timeout(15000)
+          });
+
+          const responseData = await response.json();
+          
+          if (responseData.success && responseData.data) {
+            const interfaces = Array.isArray(responseData.data) ? responseData.data : [];
+            const targetInterface = interfaces.find(iface => iface.name === selectedPeerData.interface);
+            if (targetInterface) {
+              setInterfaceData(targetInterface);
+            }
+          }
+        } catch (error) {
+          console.error('Failed to fetch interface data:', error);
+        }
+      };
+
+      fetchInterfaceData();
+    }
+  }, [selectedPeerData]);
+
   // Update form data when peer is selected
   useEffect(() => {
     if (selectedPeerData) {
@@ -68,11 +145,12 @@ const PeerForm = () => {
         ...prev,
         interface: selectedPeerData.interface || '',
         allowedAddress: selectedPeerData['allowed-address'] || '',
-        endpoint: selectedPeerData['endpoint-address'] || '',
-        endpointPort: selectedPeerData['endpoint-port'] || 51820
+        endpoint: wireguardGlobalConfig.endpointPadrao || selectedPeerData['endpoint-address'] || '',
+        endpointPort: interfaceData?.['listen-port'] || parseInt(wireguardGlobalConfig.portaPadrao) || selectedPeerData['endpoint-port'] || 51820,
+        clientDns: wireguardGlobalConfig.dnsCliente || '1.1.1.1'
       }));
     }
-  }, [selectedPeerData]);
+  }, [selectedPeerData, wireguardGlobalConfig, interfaceData]);
 
   const handleInputChange = (field: keyof PeerFormData, value: string | number) => {
     setFormData(prev => ({
@@ -372,7 +450,7 @@ PersistentKeepalive = 25`;
                         id="endpoint"
                         value={formData.endpoint}
                         onChange={(e) => handleInputChange('endpoint', e.target.value)}
-                        placeholder="vpn.empresa.com"
+                        placeholder={wireguardGlobalConfig.endpointPadrao || "vpn.empresa.com"}
                         className="bg-gray-800 border-gray-600 text-white h-10 mt-2"
                       />
                     </div>
@@ -398,6 +476,7 @@ PersistentKeepalive = 25`;
                         id="dns"
                         value={formData.clientDns}
                         onChange={(e) => handleInputChange('clientDns', e.target.value)}
+                        placeholder={wireguardGlobalConfig.dnsCliente || "1.1.1.1, 8.8.8.8"}
                         className="bg-gray-800 border-gray-600 text-white h-10 mt-2"
                       />
                     </div>
