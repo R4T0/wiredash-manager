@@ -55,7 +55,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
             type="text"
             value={formData.endpoint}
             onChange={onInputChange}
-            placeholder="Ex: 192.168.1.1"
+            placeholder="192.168.1.1"
             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
           />
         </div>
@@ -70,7 +70,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
             type="text"
             value={formData.port}
             onChange={onInputChange}
-            placeholder="Ex: 80"
+            placeholder="Para 80 ou 443 deixe em branco"
             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
           />
         </div>
@@ -87,7 +87,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
             type="text"
             value={formData.user}
             onChange={onInputChange}
-            placeholder="Ex: admin"
+            placeholder="admin"
             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
           />
         </div>
@@ -115,7 +115,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
           onCheckedChange={onSwitchChange}
         />
         <Label htmlFor="https" className="text-gray-300">
-          Usar HTTPS para conexões API
+          Use HTTPS
         </Label>
       </div>
 

@@ -420,7 +420,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
               name="endpoint-address"
               value={formData['endpoint-address']}
               onChange={handleInputChange}
-              placeholder="Ex: vpn.stacasa.local"
+              placeholder="vpn.wiredash.com"
               className="bg-gray-800 border-gray-700 text-white"
               required
             />
