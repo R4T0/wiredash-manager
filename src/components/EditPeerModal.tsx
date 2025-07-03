@@ -69,7 +69,19 @@ const EditPeerModal: React.FC<EditPeerModalProps> = ({
     if (config.routerType !== 'mikrotik') return;
 
     setIsLoadingInterfaces(true);
-    const proxyUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/router/proxy`;
+    
+    // Use dynamic backend URL detection
+    const getBackendUrl = () => {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:5000';
+      }
+      
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      return `${protocol}//${hostname}:5000`;
+    };
+    
+    const proxyUrl = `${getBackendUrl()}/api/router/proxy`;
 
     const requestBody = {
       routerType: config.routerType,
@@ -137,7 +149,19 @@ const EditPeerModal: React.FC<EditPeerModalProps> = ({
     }
 
     const config = JSON.parse(savedConfig);
-    const proxyUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/router/proxy`;
+    
+    // Use dynamic backend URL detection
+    const getBackendUrl = () => {
+      if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+        return 'http://localhost:5000';
+      }
+      
+      const protocol = window.location.protocol;
+      const hostname = window.location.hostname;
+      return `${protocol}//${hostname}:5000`;
+    };
+    
+    const proxyUrl = `${getBackendUrl()}/api/router/proxy`;
     const peerId = peer.id || peer['.id'];
 
     const requestBody = {
