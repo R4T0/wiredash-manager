@@ -169,25 +169,51 @@ const PeerForm = () => {
 
   // Function to get interface public key
   const getInterfacePublicKey = async (interfaceName: string) => {
-    const savedConfig = localStorage.getItem('routerConfig');
-    if (!savedConfig) return 'CHAVE_PUBLICA_INTERFACE_NAO_ENCONTRADA';
-
-    const config = JSON.parse(savedConfig);
-    const proxyUrl = 'http://localhost:5000/api/router/proxy';
-
-    const requestBody = {
-      routerType: config.routerType,
-      endpoint: config.endpoint,
-      port: config.port,
-      user: config.user,
-      password: config.password,
-      useHttps: config.useHttps,
-      path: '/rest/interface/wireguard',
-      method: 'GET'
-    };
-
     try {
+      // Try to load router config from API first, then fallback to localStorage
+      let config = null;
+      
+      try {
+        const routerResponse = await apiService.getRouterConfig();
+        if (routerResponse.success && routerResponse.data) {
+          config = {
+            routerType: routerResponse.data.router_type || 'mikrotik',
+            endpoint: routerResponse.data.endpoint || '',
+            port: routerResponse.data.port || '',
+            user: routerResponse.data.user || '',
+            password: routerResponse.data.password || '',
+            useHttps: routerResponse.data.use_https || false
+          };
+        }
+      } catch (apiError) {
+        console.log('Failed to load router config from API, trying localStorage...');
+      }
+
+      // Fallback to localStorage if API fails
+      if (!config) {
+        const savedConfig = localStorage.getItem('routerConfig');
+        if (!savedConfig) {
+          console.error('No router configuration found');
+          return 'CHAVE_PUBLICA_INTERFACE_NAO_ENCONTRADA';
+        }
+        config = JSON.parse(savedConfig);
+      }
+
+      const proxyUrl = 'http://localhost:5000/api/router/proxy';
+
+      const requestBody = {
+        routerType: config.routerType,
+        endpoint: config.endpoint,
+        port: config.port,
+        user: config.user,
+        password: config.password,
+        useHttps: config.useHttps,
+        path: '/rest/interface/wireguard',
+        method: 'GET'
+      };
+
       console.log('Fetching interface public key for:', interfaceName);
+      console.log('Using config:', { routerType: config.routerType, endpoint: config.endpoint });
       
       const response = await fetch(proxyUrl, {
         method: 'POST',
@@ -199,13 +225,26 @@ const PeerForm = () => {
       });
 
       const responseData = await response.json();
+      console.log('Interface API response:', responseData);
       
       if (responseData.success && responseData.data) {
         const interfaces = Array.isArray(responseData.data) ? responseData.data : [];
+        console.log('Available interfaces:', interfaces.map(i => ({ name: i.name, publicKey: i['public-key'] })));
+        
         const targetInterface = interfaces.find(iface => iface.name === interfaceName);
-        const publicKey = targetInterface?.['public-key'] || 'CHAVE_PUBLICA_INTERFACE_NAO_ENCONTRADA';
-        console.log(`Interface ${interfaceName} public key:`, publicKey);
-        return publicKey;
+        if (targetInterface) {
+          const publicKey = targetInterface['public-key'];
+          if (publicKey) {
+            console.log(`Found public key for interface ${interfaceName}:`, publicKey);
+            return publicKey;
+          } else {
+            console.warn(`Interface ${interfaceName} found but has no public key`);
+          }
+        } else {
+          console.warn(`Interface ${interfaceName} not found in available interfaces:`, interfaces.map(i => i.name));
+        }
+      } else {
+        console.error('API response not successful:', responseData);
       }
     } catch (error) {
       console.error('Failed to get interface public key:', error);

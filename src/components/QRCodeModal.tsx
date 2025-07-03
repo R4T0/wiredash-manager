@@ -20,25 +20,30 @@ const QRCodeModal = ({ isOpen, onClose, peer }: QRCodeModalProps) => {
 
   // Function to get interface public key
   const getInterfacePublicKey = async (interfaceName: string) => {
-    const savedConfig = localStorage.getItem('routerConfig');
-    if (!savedConfig) return 'CHAVE_PUBLICA_INTERFACE_NAO_ENCONTRADA';
-
-    const config = JSON.parse(savedConfig);
-    const proxyUrl = 'http://localhost:5000/api/router/proxy';
-
-    const requestBody = {
-      routerType: config.routerType,
-      endpoint: config.endpoint,
-      port: config.port,
-      user: config.user,
-      password: config.password,
-      useHttps: config.useHttps,
-      path: '/rest/interface/wireguard',
-      method: 'GET'
-    };
-
     try {
+      // Try to load router config from localStorage (QRCodeModal doesn't have access to apiService)
+      const savedConfig = localStorage.getItem('routerConfig');
+      if (!savedConfig) {
+        console.error('No router configuration found in localStorage');
+        return 'CHAVE_PUBLICA_INTERFACE_NAO_ENCONTRADA';
+      }
+
+      const config = JSON.parse(savedConfig);
+      const proxyUrl = 'http://localhost:5000/api/router/proxy';
+
+      const requestBody = {
+        routerType: config.routerType,
+        endpoint: config.endpoint,
+        port: config.port,
+        user: config.user,
+        password: config.password,
+        useHttps: config.useHttps,
+        path: '/rest/interface/wireguard',
+        method: 'GET'
+      };
+
       console.log('Fetching interface public key for:', interfaceName);
+      console.log('Using config:', { routerType: config.routerType, endpoint: config.endpoint });
       
       const response = await fetch(proxyUrl, {
         method: 'POST',
@@ -50,13 +55,26 @@ const QRCodeModal = ({ isOpen, onClose, peer }: QRCodeModalProps) => {
       });
 
       const responseData = await response.json();
+      console.log('Interface API response:', responseData);
       
       if (responseData.success && responseData.data) {
         const interfaces = Array.isArray(responseData.data) ? responseData.data : [];
+        console.log('Available interfaces:', interfaces.map(i => ({ name: i.name, publicKey: i['public-key'] })));
+        
         const targetInterface = interfaces.find(iface => iface.name === interfaceName);
-        const publicKey = targetInterface?.['public-key'] || 'CHAVE_PUBLICA_INTERFACE_NAO_ENCONTRADA';
-        console.log(`Interface ${interfaceName} public key:`, publicKey);
-        return publicKey;
+        if (targetInterface) {
+          const publicKey = targetInterface['public-key'];
+          if (publicKey) {
+            console.log(`Found public key for interface ${interfaceName}:`, publicKey);
+            return publicKey;
+          } else {
+            console.warn(`Interface ${interfaceName} found but has no public key`);
+          }
+        } else {
+          console.warn(`Interface ${interfaceName} not found in available interfaces:`, interfaces.map(i => i.name));
+        }
+      } else {
+        console.error('API response not successful:', responseData);
       }
     } catch (error) {
       console.error('Failed to get interface public key:', error);
