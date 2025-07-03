@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Layout from '../components/Layout';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
@@ -20,6 +21,17 @@ interface WireGuardInterface {
   'public-key': string;
   'running': string;
 }
+
+// Helper function to get the correct backend URL
+const getBackendUrl = () => {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:5000';
+  }
+  
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:5000`;
+};
 
 const Interfaces = () => {
   const [interfaces, setInterfaces] = useState<WireGuardInterface[]>([]);
@@ -60,8 +72,9 @@ const Interfaces = () => {
           return;
         }
 
-        // Test the connection using the same API endpoint
-        const response = await fetch('http://localhost:5000/api/router/test-connection', {
+        // Test the connection using dynamic backend URL
+        const backendUrl = getBackendUrl();
+        const response = await fetch(`${backendUrl}/api/router/test-connection`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
@@ -123,7 +136,8 @@ const Interfaces = () => {
       ...(body && { body })
     };
 
-    const response = await fetch('http://localhost:5000/api/router/proxy', {
+    const backendUrl = getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/router/proxy`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

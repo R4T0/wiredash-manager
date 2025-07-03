@@ -1,5 +1,18 @@
 
-const API_BASE_URL = 'http://localhost:5000/api';
+// Detect the current host and use it for API calls instead of hardcoded localhost
+const getApiBaseUrl = () => {
+  // If we're in development and accessing via localhost, use localhost for backend
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:5000/api';
+  }
+  
+  // For other hosts (IP access), use the same host but port 5000 for backend
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:5000/api`;
+};
+
+const API_BASE_URL = getApiBaseUrl();
 
 class ApiService {
   private async request(endpoint: string, options: RequestInit = {}) {

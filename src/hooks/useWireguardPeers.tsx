@@ -24,6 +24,17 @@ interface CreatePeerData {
   'endpoint-address': string;
 }
 
+// Helper function to get the correct backend URL
+const getBackendUrl = () => {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:5000';
+  }
+  
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:5000`;
+};
+
 export const useWireguardPeers = () => {
   const [peers, setPeers] = useState<WireguardPeer[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -63,7 +74,8 @@ export const useWireguardPeers = () => {
       ...(body && { body })
     };
 
-    const response = await fetch('http://localhost:5000/api/router/proxy', {
+    const backendUrl = getBackendUrl();
+    const response = await fetch(`${backendUrl}/api/router/proxy`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'

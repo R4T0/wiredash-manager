@@ -18,6 +18,17 @@ const routerTypes = [
   { id: 'pfsense', name: 'Pfsense' }
 ];
 
+// Helper function to get the correct backend URL
+const getBackendUrl = () => {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:5000';
+  }
+  
+  const protocol = window.location.protocol;
+  const hostname = window.location.hostname;
+  return `${protocol}//${hostname}:5000`;
+};
+
 export const useRouterConnection = () => {
   const [formData, setFormData] = useState<ConnectionFormData>({
     endpoint: '',
@@ -126,8 +137,9 @@ export const useRouterConnection = () => {
     try {
       console.log(`Making request to backend for ${selectedRouter}...`, requestData);
       
-      // Use backend endpoint for test connection
-      const response = await fetch('http://localhost:5000/api/router/test-connection', {
+      // Use dynamic backend URL instead of hardcoded localhost
+      const backendUrl = getBackendUrl();
+      const response = await fetch(`${backendUrl}/api/router/test-connection`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
