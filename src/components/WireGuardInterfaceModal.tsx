@@ -92,7 +92,7 @@ const WireGuardInterfaceModal = ({ isOpen, onClose, onSuccess }: WireGuardInterf
       }
 
       const config = JSON.parse(savedConfig);
-      const proxyUrl = 'http://localhost:5000/api/router/proxy';
+      const proxyUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/router/proxy`;
       
       const requestBody = {
         routerType: config.routerType || 'mikrotik',

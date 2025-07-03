@@ -83,7 +83,7 @@ const WireGuardEditModal = ({ isOpen, onClose, onSuccess, interface: iface }: Wi
       }
 
       const config = JSON.parse(savedConfig);
-      const proxyUrl = 'http://localhost:5000/api/router/proxy';
+      const proxyUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/router/proxy`;
       
       const requestBody = {
         routerType: config.routerType || 'mikrotik',

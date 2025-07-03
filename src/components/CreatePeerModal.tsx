@@ -165,7 +165,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
   const fetchExistingPeers = async () => {
     if (routerConfig.routerType !== 'mikrotik') return;
 
-    const proxyUrl = 'http://localhost:5000/api/router/proxy';
+    const proxyUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/router/proxy`;
 
     const requestBody = {
       routerType: routerConfig.routerType,
@@ -254,7 +254,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
     if (routerConfig.routerType !== 'mikrotik') return;
 
     setIsLoadingInterfaces(true);
-    const proxyUrl = 'http://localhost:5000/api/router/proxy';
+    const proxyUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/router/proxy`;
 
     const requestBody = {
       routerType: routerConfig.routerType,
