@@ -55,20 +55,21 @@ export const useWireguardPeers = () => {
 
   // Make API request through backend proxy
   const makeProxyRequest = async (path: string, method: string = 'GET', body?: any) => {
-    const savedConfig = localStorage.getItem('routerConfig');
-    if (!savedConfig) {
-      throw new Error('Router configuration not found');
+    // Get configuration from SQLite API instead of localStorage
+    const configResponse = await apiService.getRouterConfig();
+    if (!configResponse.success || !configResponse.data) {
+      throw new Error('Router configuration not found in database');
     }
 
-    const config = JSON.parse(savedConfig);
+    const config = configResponse.data;
     
     const requestBody = {
-      routerType: config.routerType,
+      routerType: config.router_type,
       endpoint: config.endpoint,
       port: config.port,
       user: config.user,
       password: config.password,
-      useHttps: config.useHttps,
+      useHttps: config.use_https,
       path: path,
       method: method,
       ...(body && { body })
@@ -110,19 +111,29 @@ export const useWireguardPeers = () => {
   };
 
   const fetchPeers = useCallback(async () => {
-    const savedConfig = localStorage.getItem('routerConfig');
-    if (!savedConfig) {
+    try {
+      const configResponse = await apiService.getRouterConfig();
+      if (!configResponse.success || !configResponse.data) {
+        toast({
+          title: "Configuração não encontrada",
+          description: "Configure a conexão com o roteador primeiro.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      const config = configResponse.data;
+      if (config.router_type !== 'mikrotik') {
+        console.log('Router type is not Mikrotik, skipping peer fetch');
+        return;
+      }
+    } catch (error) {
+      console.error('Failed to load router config:', error);
       toast({
-        title: "Configuração não encontrada",
-        description: "Configure a conexão com o roteador primeiro.",
+        title: "Erro de configuração",
+        description: "Não foi possível carregar a configuração do roteador.",
         variant: "destructive"
       });
-      return;
-    }
-
-    const config = JSON.parse(savedConfig);
-    if (config.routerType !== 'mikrotik') {
-      console.log('Router type is not Mikrotik, skipping peer fetch');
       return;
     }
 
@@ -185,21 +196,31 @@ export const useWireguardPeers = () => {
   }, [toast, addLog]);
 
   const createPeer = useCallback(async (peerData: CreatePeerData) => {
-    const savedConfig = localStorage.getItem('routerConfig');
-    if (!savedConfig) {
-      toast({
-        title: "Configuração não encontrada",
-        description: "Configure a conexão com o roteador primeiro.",
-        variant: "destructive"
-      });
-      return false;
-    }
+    try {
+      const configResponse = await apiService.getRouterConfig();
+      if (!configResponse.success || !configResponse.data) {
+        toast({
+          title: "Configuração não encontrada",
+          description: "Configure a conexão com o roteador primeiro.",
+          variant: "destructive"
+        });
+        return false;
+      }
 
-    const config = JSON.parse(savedConfig);
-    if (config.routerType !== 'mikrotik') {
+      const config = configResponse.data;
+      if (config.router_type !== 'mikrotik') {
+        toast({
+          title: "Roteador não suportado",
+          description: "Esta funcionalidade é específica para roteadores Mikrotik.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to load router config:', error);
       toast({
-        title: "Roteador não suportado",
-        description: "Esta funcionalidade é específica para roteadores Mikrotik.",
+        title: "Erro de configuração",
+        description: "Não foi possível carregar a configuração do roteador.",
         variant: "destructive"
       });
       return false;
@@ -291,21 +312,31 @@ export const useWireguardPeers = () => {
   }, [toast, addLog, fetchPeers]);
 
   const deletePeer = useCallback(async (peerId: string, peerName: string) => {
-    const savedConfig = localStorage.getItem('routerConfig');
-    if (!savedConfig) {
-      toast({
-        title: "Configuração não encontrada",
-        description: "Configure a conexão com o roteador primeiro.",
-        variant: "destructive"
-      });
-      return false;
-    }
+    try {
+      const configResponse = await apiService.getRouterConfig();
+      if (!configResponse.success || !configResponse.data) {
+        toast({
+          title: "Configuração não encontrada",
+          description: "Configure a conexão com o roteador primeiro.",
+          variant: "destructive"
+        });
+        return false;
+      }
 
-    const config = JSON.parse(savedConfig);
-    if (config.routerType !== 'mikrotik') {
+      const config = configResponse.data;
+      if (config.router_type !== 'mikrotik') {
+        toast({
+          title: "Roteador não suportado",
+          description: "Esta funcionalidade é específica para roteadores Mikrotik.",
+          variant: "destructive"
+        });
+        return false;
+      }
+    } catch (error) {
+      console.error('Failed to load router config:', error);
       toast({
-        title: "Roteador não suportado",
-        description: "Esta funcionalidade é específica para roteadores Mikrotik.",
+        title: "Erro de configuração",
+        description: "Não foi possível carregar a configuração do roteador.",
         variant: "destructive"
       });
       return false;
