@@ -450,7 +450,7 @@ PersistentKeepalive = 25`;
                         id="endpoint"
                         value={formData.endpoint}
                         onChange={(e) => handleInputChange('endpoint', e.target.value)}
-                        placeholder={wireguardGlobalConfig.endpointPadrao || "vpn.empresa.com"}
+                        placeholder={wireguardGlobalConfig.endpointPadrao || "vpn.wiredash.com"}
                         className="bg-gray-800 border-gray-600 text-white h-10 mt-2"
                       />
                     </div>
