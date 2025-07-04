@@ -15,11 +15,11 @@ const navigation = [{
   href: '/interfaces',
   icon: Network
 }, {
-  name: 'Gerar Config',
+  name: 'Download Conf',
   href: '/generate',
   icon: Plus
 }, {
-  name: 'QR Code',
+  name: 'Automação',
   href: '/qrcode',
   icon: QrCode
 }, {
