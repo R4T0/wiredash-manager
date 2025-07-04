@@ -233,54 +233,7 @@ echo "net.ipv4.tcp_max_syn_backlog = 65536" | sudo tee -a /etc/sysctl.conf
 sudo sysctl -p
 ```
 
-### 2. Instalar com LVM (Produção Avançada)
-
-#### Configurar LVM:
-```bash
-# Assumindo disco adicional /dev/sdb
-sudo pvcreate /dev/sdb
-sudo vgcreate wireguard-vg /dev/sdb
-
-# Criar volumes lógicos
-sudo lvcreate -L 5G -n data-lv wireguard-vg
-sudo lvcreate -L 2G -n logs-lv wireguard-vg
-sudo lvcreate -L 1G -n backups-lv wireguard-vg
-
-# Formatar volumes
-sudo mkfs.ext4 /dev/wireguard-vg/data-lv
-sudo mkfs.ext4 /dev/wireguard-vg/logs-lv
-sudo mkfs.ext4 /dev/wireguard-vg/backups-lv
-
-# Criar pontos de montagem
-sudo mkdir -p /opt/wireguard/{data,logs,backups}
-
-# Montar volumes
-sudo mount /dev/wireguard-vg/data-lv /opt/wireguard/data
-sudo mount /dev/wireguard-vg/logs-lv /opt/wireguard/logs
-sudo mount /dev/wireguard-vg/backups-lv /opt/wireguard/backups
-
-# Configurar montagem automática
-cat << EOF | sudo tee -a /etc/fstab
-/dev/wireguard-vg/data-lv /opt/wireguard/data ext4 defaults 0 2
-/dev/wireguard-vg/logs-lv /opt/wireguard/logs ext4 defaults 0 2
-/dev/wireguard-vg/backups-lv /opt/wireguard/backups ext4 defaults 0 2
-EOF
-```
-
-#### Configurar Docker Compose para LVM:
-```yaml
-services:
-  backend:
-    volumes:
-      - /opt/wireguard/data:/app/data:rw
-      - /opt/wireguard/logs/backend:/app/logs:rw
-  
-  frontend:
-    volumes:
-      - /opt/wireguard/logs/nginx:/var/log/nginx:rw
-```
-
-### 3. Configurar SSL/HTTPS (Produção)
+### 2. Configurar SSL/HTTPS (Produção)
 
 #### Instalar Certbot:
 ```bash
@@ -579,5 +532,3 @@ Este guia fornece uma base sólida para deploy em produção do WireGuard Multi-
 - **Backup Remoto**: AWS S3, Google Cloud Storage
 - **Segurança**: WAF, fail2ban, auditoria de logs
 - **Alta Disponibilidade**: Clustering Docker Swarm ou Kubernetes
-
-Para suporte adicional, consulte os logs detalhados e a documentação da API em `/api/docs`.
