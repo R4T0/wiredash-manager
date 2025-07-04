@@ -6,11 +6,22 @@ import StatsCard from './StatsCard';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { useWireguardPeers } from '@/hooks/useWireguardPeers';
+import SecurityWarning from './SecurityWarning';
 
 const Dashboard = () => {
   const navigate = useNavigate();
   const { peers, isLoading } = useWireguardPeers();
   const [recentPeers, setRecentPeers] = useState<any[]>([]);
+  const [showSecurityWarning, setShowSecurityWarning] = useState(true);
+
+  // Auto-hide security warning after 5 seconds
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowSecurityWarning(false);
+    }, 5000);
+    
+    return () => clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     if (peers.length > 0) {
@@ -75,6 +86,13 @@ const Dashboard = () => {
 
   return (
     <div className="space-y-8 animate-fade-in">
+      {/* Security Warning */}
+      {showSecurityWarning && (
+        <div className="animate-fade-in">
+          <SecurityWarning />
+        </div>
+      )}
+      
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
