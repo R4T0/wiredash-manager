@@ -21,7 +21,7 @@ const navigation = [{
 }, {
   name: 'Automação',
   href: '/qrcode',
-  icon: QrCode
+  icon: Plus
 }, {
   name: 'Configurações',
   href: '/settings',
