@@ -39,6 +39,8 @@ export const useRouterConnection = () => {
   });
   const [selectedRouter, setSelectedRouter] = useState('mikrotik');
   const [isTestingConnection, setIsTestingConnection] = useState(false);
+  const [hasStoredPassword, setHasStoredPassword] = useState(false);
+  const [actualPassword, setActualPassword] = useState('');
   const { toast } = useToast();
   const { addLog } = useApiLogsContext();
 
@@ -53,11 +55,14 @@ export const useRouterConnection = () => {
           const config = response.data;
           // Don't log sensitive configuration data
           console.log('Router configuration loaded from SQLite database');
+          const hasPassword = config.password && config.password.length > 0;
+          setHasStoredPassword(hasPassword);
+          setActualPassword(hasPassword ? config.password : '');
           setFormData({
             endpoint: config.endpoint || '',
             port: config.port || '',
             user: config.user || '',
-            password: config.password ? '••••••••' : '', // Mask password in UI
+            password: hasPassword ? '••••••••' : '', // Mask password in UI
             useHttps: config.use_https || false
           });
           if (config.router_type) {
@@ -65,6 +70,8 @@ export const useRouterConnection = () => {
           }
         } else {
           console.log('No router configuration found in SQLite database');
+          setHasStoredPassword(false);
+          setActualPassword('');
         }
       } catch (error) {
         console.error('Failed to load router config from SQLite database:', error);
@@ -74,11 +81,14 @@ export const useRouterConnection = () => {
           if (savedConfig) {
             const config = JSON.parse(savedConfig);
             console.log('Fallback: Loading configuration from localStorage:', config);
+            const hasPassword = config.password && config.password.length > 0;
+            setHasStoredPassword(hasPassword);
+            setActualPassword(hasPassword ? config.password : '');
             setFormData({
               endpoint: config.endpoint || '',
               port: config.port || '',
               user: config.user || '',
-              password: config.password || '',
+              password: hasPassword ? '••••••••' : '',
               useHttps: config.useHttps || false
             });
             if (config.routerType) {
@@ -96,7 +106,14 @@ export const useRouterConnection = () => {
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    console.log(`Updating ${name} to:`, value);
+    console.log(`Updating ${name} to:`, name === 'password' ? '[REDACTED]' : value);
+    
+    if (name === 'password') {
+      // If user is typing a new password, update the actual password and clear the stored flag
+      setActualPassword(value);
+      setHasStoredPassword(false);
+    }
+    
     setFormData(prev => ({
       ...prev,
       [name]: value
@@ -112,7 +129,10 @@ export const useRouterConnection = () => {
   }, []);
 
   const handleTestConnection = useCallback(async () => {
-    if (!formData.endpoint || !formData.user || !formData.password) {
+    // Use actual password if we have a stored one and user hasn't changed it
+    const passwordToUse = hasStoredPassword && formData.password === '••••••••' ? actualPassword : formData.password;
+    
+    if (!formData.endpoint || !formData.user || !passwordToUse) {
       toast({
         title: "Campos obrigatórios",
         description: "Preencha o endereço, usuário e senha antes de testar a conexão.",
@@ -131,7 +151,7 @@ export const useRouterConnection = () => {
       endpoint: formData.endpoint,
       port: formData.port,
       user: formData.user,
-      password: formData.password,
+      password: passwordToUse,
       useHttps: formData.useHttps
     };
 
@@ -200,15 +220,18 @@ export const useRouterConnection = () => {
     } finally {
       setIsTestingConnection(false);
     }
-  }, [formData, selectedRouter, toast, addLog]);
+  }, [formData, selectedRouter, toast, addLog, hasStoredPassword, actualPassword]);
 
   const handleSave = useCallback(async () => {
+    // Use actual password if we have a stored one and user hasn't changed it
+    const passwordToUse = hasStoredPassword && formData.password === '••••••••' ? actualPassword : formData.password;
+    
     const configToSave = {
       routerType: selectedRouter,
       endpoint: formData.endpoint,
       port: formData.port,
       user: formData.user,
-      password: formData.password,
+      password: passwordToUse,
       useHttps: formData.useHttps
     };
 
@@ -219,6 +242,13 @@ export const useRouterConnection = () => {
       const response = await apiService.saveRouterConfig(configToSave);
       if (response.success) {
         console.log('Configuration saved successfully to SQLite database');
+        // Update our state to reflect the saved password
+        setHasStoredPassword(true);
+        setActualPassword(passwordToUse);
+        setFormData(prev => ({
+          ...prev,
+          password: '••••••••'
+        }));
         toast({
           title: "✅ Configurações salvas",
           description: "As configurações foram salvas com sucesso no banco de dados SQLite!",
@@ -237,7 +267,7 @@ export const useRouterConnection = () => {
         variant: "destructive"
       });
     }
-  }, [formData, selectedRouter, toast]);
+  }, [formData, selectedRouter, toast, hasStoredPassword, actualPassword]);
 
   return {
     formData,
