@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { useToast } from '@/hooks/use-toast';
 import { Edit, Loader2 } from 'lucide-react';
+import { apiService } from '@/services/api';
 
 interface EditPeerModalProps {
   isOpen: boolean;
@@ -62,11 +63,12 @@ const EditPeerModal: React.FC<EditPeerModalProps> = ({
   }, [isOpen]);
 
   const fetchWireguardInterfaces = async () => {
-    const savedConfig = localStorage.getItem('routerConfig');
-    if (!savedConfig) return;
+    // Get configuration from SQLite API instead of localStorage
+    const configResponse = await apiService.getRouterConfig();
+    if (!configResponse.success || !configResponse.data) return;
 
-    const config = JSON.parse(savedConfig);
-    if (config.routerType !== 'mikrotik') return;
+    const config = configResponse.data;
+    if (config.router_type !== 'mikrotik') return;
 
     setIsLoadingInterfaces(true);
     
@@ -84,12 +86,12 @@ const EditPeerModal: React.FC<EditPeerModalProps> = ({
     const proxyUrl = `${getBackendUrl()}/api/router/proxy`;
 
     const requestBody = {
-      routerType: config.routerType,
+      routerType: config.router_type,
       endpoint: config.endpoint,
       port: config.port,
       user: config.user,
       password: config.password,
-      useHttps: config.useHttps,
+      useHttps: config.use_https,
       path: '/rest/interface/wireguard',
       method: 'GET'
     };
@@ -138,8 +140,9 @@ const EditPeerModal: React.FC<EditPeerModalProps> = ({
       return;
     }
 
-    const savedConfig = localStorage.getItem('routerConfig');
-    if (!savedConfig) {
+    // Get configuration from SQLite API instead of localStorage
+    const configResponse = await apiService.getRouterConfig();
+    if (!configResponse.success || !configResponse.data) {
       toast({
         title: "Configuração não encontrada",
         description: "Configure a conexão com o roteador primeiro.",
@@ -148,7 +151,7 @@ const EditPeerModal: React.FC<EditPeerModalProps> = ({
       return;
     }
 
-    const config = JSON.parse(savedConfig);
+    const config = configResponse.data;
     
     // Use dynamic backend URL detection
     const getBackendUrl = () => {
@@ -165,12 +168,12 @@ const EditPeerModal: React.FC<EditPeerModalProps> = ({
     const peerId = peer.id || peer['.id'];
 
     const requestBody = {
-      routerType: config.routerType,
+      routerType: config.router_type,
       endpoint: config.endpoint,
       port: config.port,
       user: config.user,
       password: config.password,
-      useHttps: config.useHttps,
+      useHttps: config.use_https,
       path: `/rest/interface/wireguard/peers/${peerId}`,
       method: 'PATCH',
       body: {
