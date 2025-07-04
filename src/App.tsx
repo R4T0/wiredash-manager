@@ -14,6 +14,7 @@ import Interfaces from "./pages/Interfaces";
 import Settings from "./pages/Settings";
 import Login from "./pages/Login";
 import NotFound from "./pages/NotFound";
+import Automacao from "./pages/Automacao";
 
 const queryClient = new QueryClient();
 
@@ -49,7 +50,7 @@ const App = () => (
               } />
               <Route path="/qrcode" element={
                 <ProtectedRoute>
-                  <Generate />
+                  <Automacao />
                 </ProtectedRoute>
               } />
               <Route path="/settings" element={
