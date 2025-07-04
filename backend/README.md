@@ -16,6 +16,31 @@ Backend Flask que atua como proxy para acessar a API REST de diferentes tipos de
 - Health check endpoint
 - Suporte a Docker
 - Arquitetura modular e extensível
+- **Banco de dados SQLite integrado** para persistência de configurações
+
+## Banco de Dados
+
+O sistema utiliza **SQLite** como banco de dados padrão:
+
+- **Arquivo**: `wireguard_manager.db` (criado automaticamente)
+- **Localização**: Diretório raiz da aplicação backend
+- **Tabelas**:
+  - `usuarios`: Gerenciamento de usuários do sistema
+  - `configuracoes_roteador`: Configurações de conexão dos roteadores
+  - `configuracoes_wireguard`: Configurações padrão do WireGuard
+
+### Persistência em Docker
+
+Para produção, configure um volume Docker para persistir o banco:
+
+```yaml
+services:
+  backend:
+    volumes:
+      - ./data:/app/data
+    environment:
+      - DB_PATH=/app/data/wireguard_manager.db
+```
 
 ## Estrutura do Projeto
 
