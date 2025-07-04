@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from '@/components/ui/button';
 import { QrCode, Download, Copy, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import { apiService } from '@/services/api';
 import QRCode from 'qrcode';
 
 interface QRCodeModalProps {
@@ -21,14 +22,14 @@ const QRCodeModal = ({ isOpen, onClose, peer }: QRCodeModalProps) => {
   // Function to get interface public key
   const getInterfacePublicKey = async (interfaceName: string) => {
     try {
-      // Try to load router config from localStorage (QRCodeModal doesn't have access to apiService)
-      const savedConfig = localStorage.getItem('routerConfig');
-      if (!savedConfig) {
-        console.error('No router configuration found in localStorage');
+      // Get configuration from SQLite API instead of localStorage
+      const configResponse = await apiService.getRouterConfig();
+      if (!configResponse.success || !configResponse.data) {
+        console.error('No router configuration found in database');
         return 'CHAVE_PUBLICA_INTERFACE_NAO_ENCONTRADA';
       }
 
-      const config = JSON.parse(savedConfig);
+      const config = configResponse.data;
       // Use dynamic backend URL detection
       const getBackendUrl = () => {
         if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
@@ -43,18 +44,18 @@ const QRCodeModal = ({ isOpen, onClose, peer }: QRCodeModalProps) => {
       const proxyUrl = `${getBackendUrl()}/api/router/proxy`;
 
       const requestBody = {
-        routerType: config.routerType,
+        routerType: config.router_type,
         endpoint: config.endpoint,
         port: config.port,
         user: config.user,
         password: config.password,
-        useHttps: config.useHttps,
+        useHttps: config.use_https,
         path: '/rest/interface/wireguard',
         method: 'GET'
       };
 
       console.log('Fetching interface public key for:', interfaceName);
-      console.log('Using config:', { routerType: config.routerType, endpoint: config.endpoint });
+      console.log('Using config:', { routerType: config.router_type, endpoint: config.endpoint });
       
       const response = await fetch(proxyUrl, {
         method: 'POST',
