@@ -51,12 +51,13 @@ export const useRouterConnection = () => {
         
         if (response.success && response.data) {
           const config = response.data;
-          console.log('Router configuration loaded from SQLite:', config);
+          // Don't log sensitive configuration data
+          console.log('Router configuration loaded from SQLite database');
           setFormData({
             endpoint: config.endpoint || '',
             port: config.port || '',
             user: config.user || '',
-            password: config.password || '',
+            password: config.password ? '••••••••' : '', // Mask password in UI
             useHttps: config.use_https || false
           });
           if (config.router_type) {
@@ -135,7 +136,8 @@ export const useRouterConnection = () => {
     };
 
     try {
-      console.log(`Making request to backend for ${selectedRouter}...`, requestData);
+    console.log(`Making request to backend for ${selectedRouter}...`);
+    // Note: Password is not logged for security reasons
       
       // Use dynamic backend URL instead of hardcoded localhost
       const backendUrl = getBackendUrl();
@@ -210,7 +212,8 @@ export const useRouterConnection = () => {
       useHttps: formData.useHttps
     };
 
-    console.log('Saving router configuration to SQLite database:', configToSave);
+    console.log('Saving router configuration to SQLite database');
+    // Note: Password is encrypted before storage for security
     
     try {
       const response = await apiService.saveRouterConfig(configToSave);

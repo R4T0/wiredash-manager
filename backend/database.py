@@ -4,6 +4,7 @@ import os
 from datetime import datetime
 import hashlib
 import json
+from encryption import password_encryption
 
 class DatabaseManager:
     def __init__(self, db_path='wireguard_manager.db'):
@@ -147,12 +148,22 @@ class DatabaseManager:
         cursor.execute('SELECT * FROM configuracoes_roteador ORDER BY updated_at DESC LIMIT 1')
         config = cursor.fetchone()
         conn.close()
-        return dict(config) if config else None
+        
+        if config:
+            config_dict = dict(config)
+            # Decrypt password before returning
+            if config_dict.get('password'):
+                config_dict['password'] = password_encryption.decrypt_password(config_dict['password'])
+            return config_dict
+        return None
     
     def save_router_config(self, router_type, endpoint, port, user, password, use_https):
         """Save router configuration"""
         conn = self.get_connection()
         cursor = conn.cursor()
+        
+        # Encrypt password before storing
+        encrypted_password = password_encryption.encrypt_password(password) if password else ""
         
         # Delete existing configs and insert new one
         cursor.execute('DELETE FROM configuracoes_roteador')
@@ -160,7 +171,7 @@ class DatabaseManager:
             INSERT INTO configuracoes_roteador 
             (router_type, endpoint, port, user, password, use_https, created_at, updated_at)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (router_type, endpoint, port, user, password, use_https, 
+        ''', (router_type, endpoint, port, user, encrypted_password, use_https, 
               datetime.now().isoformat(), datetime.now().isoformat()))
         
         conn.commit()

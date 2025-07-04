@@ -82,7 +82,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
         
         if (wgResponse.success && wgResponse.data) {
           const config = wgResponse.data;
-          console.log('WireGuard configuration loaded from SQLite:', config);
+          console.log('WireGuard configuration loaded from SQLite database');
           const wgConfig = {
             endpointPadrao: config.endpoint_padrao || '',
             portaPadrao: config.porta_padrao || '',
@@ -106,7 +106,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
         
         if (routerResponse.success && routerResponse.data) {
           const config = routerResponse.data;
-          console.log('Router configuration loaded from SQLite:', config);
+          console.log('Router configuration loaded from SQLite database');
           setRouterConfig({
             routerType: config.router_type || 'mikrotik',
             endpoint: config.endpoint || '',

@@ -25,7 +25,7 @@ const WireGuardTab = () => {
         
         if (response.success && response.data) {
           const config = response.data;
-          console.log('WireGuard configuration loaded from SQLite:', config);
+          console.log('WireGuard configuration loaded from SQLite database');
           setWireguardConfig({
             endpointPadrao: config.endpoint_padrao || '',
             portaPadrao: config.porta_padrao || '',
@@ -42,7 +42,7 @@ const WireGuardTab = () => {
           const savedConfig = localStorage.getItem('wireguardConfig');
           if (savedConfig) {
             const config = JSON.parse(savedConfig);
-            console.log('Fallback: Loading WireGuard configuration from localStorage:', config);
+            console.log('Fallback: Loading WireGuard configuration from localStorage');
             setWireguardConfig({
               endpointPadrao: config.endpointPadrao || '',
               portaPadrao: config.portaPadrao || '',
@@ -69,7 +69,7 @@ const WireGuardTab = () => {
   };
 
   const handleWireguardSave = async () => {
-    console.log('Saving WireGuard configuration to SQLite database:', wireguardConfig);
+    console.log('Saving WireGuard configuration to SQLite database');
     
     try {
       const response = await apiService.saveWireguardConfig(wireguardConfig);

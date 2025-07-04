@@ -57,7 +57,7 @@ const Peers = () => {
         }
 
         const config = configResponse.data;
-        console.log('Router configuration loaded:', config);
+        console.log('Router configuration loaded');
         setRouterConfig(config);
 
         if (!config.endpoint || !config.user || !config.password) {

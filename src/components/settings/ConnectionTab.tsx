@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { useRouterConnection } from '@/hooks/useRouterConnection';
 import RouterTypeSelector from './RouterTypeSelector';
 import ConnectionForm from './ConnectionForm';
+import SecurityWarning from '../SecurityWarning';
 
 const ConnectionTab = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -30,6 +31,8 @@ const ConnectionTab = () => {
 
   return (
     <div className="p-6 space-y-6">
+      <SecurityWarning />
+      
       <RouterTypeSelector
         selectedRouter={selectedRouter}
         onRouterSelect={handleRouterSelect}

@@ -102,7 +102,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
             type="password"
             value={formData.password}
             onChange={onInputChange}
-            placeholder="Digite sua senha"
+            placeholder={formData.password === '••••••••' ? 'Senha configurada' : 'Digite sua senha'}
             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
           />
         </div>
