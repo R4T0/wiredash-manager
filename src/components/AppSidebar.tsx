@@ -15,9 +15,9 @@ const navigation = [{
   href: '/interfaces',
   icon: Network
 }, {
-  name: 'Download Conf',
+  name: 'Download',
   href: '/generate',
-  icon: Plus
+  icon: QrCode
 }, {
   name: 'Automação',
   href: '/qrcode',
