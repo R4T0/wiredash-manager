@@ -2,42 +2,25 @@ version: '3.8'
 
 services:
   backend:
-    image: wireguard-backend:latest
-    build: ./backend
-    ports:
-      - "5000:5000"
+    image: dg95/wiredash-backend:1.0.0
     environment:
       - FLASK_ENV=production
       - DB_PATH=/app/data/wireguard_manager.db
       - LOG_LEVEL=INFO
     volumes:
-      - wireguard-db:/app/data
-      - wireguard-logs:/app/logs
+      - wiredash-db:/app/data
+      - wiredash-logs:/app/logs
     networks:
-      - wireguard-network
+      - traefik_public
     deploy:
-      replicas: 2
+      replicas: 1
       restart_policy:
         condition: on-failure
         delay: 5s
-        max_attempts: 3
-      update_config:
-        parallelism: 1
-        delay: 10s
-        failure_action: rollback
-      rollback_config:
-        parallelism: 1
-        delay: 10s
-      placement:
-        constraints:
-          - node.role == worker
       resources:
         limits:
           memory: 512M
           cpus: '0.5'
-        reservations:
-          memory: 256M
-          cpus: '0.25'
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
@@ -45,66 +28,29 @@ services:
       retries: 3
       start_period: 40s
 
-  frontend:
-    image: wireguard-frontend:latest
-    build: .
-    ports:
-      - "80:80"
-      - "443:443"
-    depends_on:
-      - backend
-    volumes:
-      - wireguard-nginx-logs:/var/log/nginx
+  wiredash:
+    image: dg95/wiredash-front:1.0.0
     networks:
-      - wireguard-network
+      - traefik_public
     deploy:
-      replicas: 2
+      replicas: 1
       restart_policy:
         condition: on-failure
         delay: 5s
-        max_attempts: 3
-      update_config:
-        parallelism: 1
-        delay: 10s
-        failure_action: rollback
-      rollback_config:
-        parallelism: 1
-        delay: 10s
       placement:
         constraints:
           - node.role == worker
       resources:
         limits:
-          memory: 256M
-          cpus: '0.25'
-        reservations:
-          memory: 128M
-          cpus: '0.1'
+          memory: 512M
+          cpus: '0.5'
 
 networks:
-  wireguard-network:
-    driver: overlay
-    attachable: true
-    ipam:
-      config:
-        - subnet: 172.20.0.0/16
+  traefik_public:
+    external: true
 
 volumes:
-  wireguard-db:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/wireguard/data
-  wireguard-logs:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/wireguard/logs
-  wireguard-nginx-logs:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: /opt/wireguard/logs/nginx
+  wiredash-db:
+    external: true
+  wiredash-logs:
+    external: true
