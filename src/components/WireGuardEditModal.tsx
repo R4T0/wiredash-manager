@@ -6,6 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2 } from 'lucide-react';
+import { apiService } from '@/services/api';
 
 interface WireGuardInterface {
   '.id': string;
@@ -72,26 +73,40 @@ const WireGuardEditModal = ({ isOpen, onClose, onSuccess, interface: iface }: Wi
     setIsUpdating(true);
 
     try {
-      const savedConfig = localStorage.getItem('routerConfig');
-      if (!savedConfig) {
+      // Load router configuration from API instead of localStorage
+      const configResponse = await apiService.getRouterConfig();
+      if (!configResponse.success || !configResponse.data) {
         toast({
           title: "Configuração não encontrada",
           description: "Configure a conexão com o roteador primeiro.",
           variant: "destructive"
         });
+        setIsUpdating(false);
         return;
       }
 
-      const config = JSON.parse(savedConfig);
-      const proxyUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/router/proxy`;
+      const config = configResponse.data;
+      
+      // Helper function to get the correct backend URL
+      const getBackendUrl = () => {
+        if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+          return 'http://localhost:5000';
+        }
+        
+        const protocol = window.location.protocol;
+        const hostname = window.location.hostname;
+        return `${protocol}//${hostname}:5000`;
+      };
+
+      const backendUrl = getBackendUrl();
       
       const requestBody = {
-        routerType: config.routerType || 'mikrotik',
+        routerType: config.router_type || 'mikrotik',
         endpoint: config.endpoint,
         port: config.port,
         user: config.user,
         password: config.password,
-        useHttps: config.useHttps,
+        useHttps: config.use_https,
         path: `/rest/interface/wireguard/${iface['.id']}`,
         method: 'PATCH',
         body: {
@@ -100,9 +115,9 @@ const WireGuardEditModal = ({ isOpen, onClose, onSuccess, interface: iface }: Wi
         }
       };
 
-      console.log('Updating WireGuard interface...', requestBody);
+      console.log('Updating WireGuard interface via backend proxy...');
 
-      const response = await fetch(proxyUrl, {
+      const response = await fetch(`${backendUrl}/api/router/proxy`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
