@@ -12,7 +12,7 @@ class Config:
     FLASK_DEBUG = FLASK_ENV == 'development'
     
     # CORS
-    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173,https://yourapp.lovable.app').split(',')
+    CORS_ORIGINS = os.getenv('CORS_ORIGINS', 'http://localhost:3000,http://localhost:5173,http//0.0.0.0:3000')
     
     # Timeout padrão para requisições
     DEFAULT_TIMEOUT = int(os.getenv('DEFAULT_TIMEOUT', '10'))
