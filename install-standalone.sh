@@ -1,12 +1,12 @@
 #!/bin/bash
 
 # ==============================================================================
-# Script de Instalação do Wiredash Manager (v4 - Acesso via Porta 5000)
+# Script de Instalação Wiredash Manager v5 - Corrige Permissões do NPM
 # ==============================================================================
 #
 # Este script é destinado a sistemas baseados em Debian/Ubuntu.
 #
-# Execute este script como root ou com privilégios de sudo.
+# Execute este script com privilégios de sudo.
 #
 
 # --- Configurações Iniciais ---
@@ -37,7 +37,7 @@ apt-get autoremove -y
 
 print_info "Configurando o repositório do Node.js v${NODE_VERSION} e instalando..."
 curl -fsSL https://deb.nodesource.com/setup_${NODE_VERSION}.x | sudo -E bash -
-apt-get install -y nodejs # Este pacote agora inclui o npm
+apt-get install -y nodejs
 
 # --- 2. Clonar o Repositório e Corrigir Permissões ---
 print_info "Clonando o repositório do projeto para ${INSTALL_DIR}..."
@@ -52,7 +52,6 @@ cd "$INSTALL_DIR"
 
 # --- 3. Configuração do Backend (Python Flask API) ---
 print_info "Configurando o backend Python..."
-# Usamos 'sudo -u www-data' para executar como o usuário correto
 sudo -u www-data python3 -m venv venv
 sudo -u www-data /bin/bash -c "source venv/bin/activate && pip install -r backend/requirements.txt"
 
@@ -67,7 +66,6 @@ After=network.target
 User=www-data
 Group=www-data
 WorkingDirectory=${INSTALL_DIR}/backend
-# MODIFICADO: Gunicorn agora escuta em 0.0.0.0:5000
 ExecStart=${INSTALL_DIR}/venv/bin/gunicorn --workers 4 --bind 0.0.0.0:5000 app:app
 Restart=always
 
@@ -81,10 +79,17 @@ systemctl start wiredash-backend
 systemctl enable wiredash-backend
 
 # --- 5. Configuração do Frontend (React + Vite) ---
-# O arquivo api.ts original já aponta para a porta 5000, então não precisamos modificá-lo.
 print_info "Configurando o frontend React..."
-# Usamos 'sudo -u www-data' para garantir que não haja problemas de permissão
+
+# MODIFICADO: Corrige o problema de permissão do cache do NPM
+print_info "Corrigindo permissões do cache do NPM para o usuário www-data..."
+mkdir -p /var/www/.npm
+chown -R www-data:www-data /var/www/.npm
+
+print_info "Instalando dependências do Node.js como usuário www-data..."
 sudo -u www-data npm install
+
+print_info "Construindo a aplicação frontend como usuário www-data..."
 sudo -u www-data npm run build
 
 # --- 6. Configuração do Nginx (Simplificado) ---
@@ -92,7 +97,7 @@ print_info "Configurando o Nginx para servir o frontend..."
 cat > /etc/nginx/sites-available/wiredash-manager <<EOL
 server {
     listen 80;
-    server_name seu_dominio_ou_ip; # IMPORTANTE: Substitua pelo seu dominio ou IP
+    server_name seu_dominio_ou_ip; # IMPORTANTE: Substitua pelo seu domínio ou IP
 
     root ${INSTALL_DIR}/dist;
     index index.html;
@@ -100,8 +105,6 @@ server {
     location / {
         try_files \$uri \$uri/ /index.html;
     }
-
-    # MODIFICADO: Bloco de proxy para /api foi removido
 }
 EOL
 
@@ -120,9 +123,8 @@ systemctl restart nginx
 
 # --- 7. Configuração do Firewall ---
 print_info "Configurando o firewall (UFW)..."
-ufw allow 'Nginx Full' # Portas 80 (HTTP) e 443 (HTTPS)
-# MODIFICADO: Adicionada regra para a porta 5000
-ufw allow 5000/tcp   # Porta da API do Backend
+ufw allow 'Nginx Full'
+ufw allow 5000/tcp
 ufw status
 
 # --- Finalização ---
