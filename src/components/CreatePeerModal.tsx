@@ -400,7 +400,6 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
               name="allowed-address"
               value={formData['allowed-address']}
               onChange={handleInputChange}
-              placeholder="Ex: 10.0.0.10/32"
               className="bg-gray-800 border-gray-700 text-white"
               required
             />
