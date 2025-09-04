@@ -217,15 +217,16 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
         }
       });
 
-      // Find next available IP (starting from x.x.x.10 to avoid common network addresses)
-      for (let i = 10; i < 254; i++) {
+      // Find next available IP (starting from x.x.x.2 to avoid common network addresses)
+      for (let i = 2; i < 254; i++) {
         const testIP = `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.${i}`;
         if (!usedIPs.has(testIP)) {
           return `${testIP}/32`;
         }
       }
 
-      return `${ipParts[0]}.${ipParts[1]}.${ipParts[2]}.10/32`; // fallback
+      // If all IPs are used, return empty string instead of fallback
+      return '';
     } catch (error) {
       console.error('Error calculating next IP:', error);
       return '';
