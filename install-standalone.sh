@@ -11,7 +11,7 @@
 
 # --- Configurações Iniciais ---
 set -e # Aborta o script se qualquer comando falhar
-GIT_REPO_URL="https://github.com/wiredash-manager/wiredash-manager.git"
+GIT_REPO_URL="https://github.com/R4T0/wiredash-manager.git"
 INSTALL_DIR="/opt/wiredash-manager"
 NODE_VERSION="18"
 
