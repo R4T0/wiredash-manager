@@ -133,7 +133,7 @@ const AppSidebar = () => {
             </div>
             {!isCollapsed && <div>
                 <h1 className="text-xl font-bold text-white">WireDash</h1>
-                <p className="text-xs text-gray-400">Manager v1.0.0</p>
+                <p className="text-xs text-gray-400">Manager v1.0.1</p>
               </div>}
           </div>
         </div>
