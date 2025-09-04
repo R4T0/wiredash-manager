@@ -232,6 +232,17 @@ export const useWireguardPeers = () => {
     // Get the correct endpoint port from the selected interface
     const endpointPort = await getEndpointPort(peerData.interface);
     
+    // Load default client DNS from saved WireGuard configuration
+    let clientDns = '1.1.1.1';
+    try {
+      const wgConfigResponse = await apiService.getWireguardConfig();
+      if (wgConfigResponse?.success && wgConfigResponse.data?.dns_cliente) {
+        clientDns = wgConfigResponse.data.dns_cliente;
+      }
+    } catch (e) {
+      console.warn('Não foi possível carregar o DNS padrão do WireGuard; usando default.', e);
+    }
+    
     // Generate valid WireGuard public key
     const publicKey = generatePublicKey();
 
@@ -241,10 +252,11 @@ export const useWireguardPeers = () => {
       name: peerData.name,
       interface: peerData.interface,
       'public-key': publicKey,
-      'private-key': '', // Let Mikrotik generate the private key
+      'private-key': 'auto',
       'allowed-address': peerData['allowed-address'],
       'endpoint-address': peerData['endpoint-address'],
-      'endpoint-port': endpointPort
+      'endpoint-port': endpointPort,
+      'client-dns': clientDns,
     };
 
     try {
