@@ -29,7 +29,7 @@ print_info "Atualizando a lista de pacotes do sistema..."
 apt-get update
 
 print_info "Instalando dependências base: git, python3, pip, nginx e curl..."
-apt-get install -y git python3-pip python3-venv nginx curl
+apt-get install -y git python3-pip python3-venv nginx curl sudo
 
 print_info "Removendo versões antigas do Node.js e npm para evitar conflitos..."
 apt-get remove -y nodejs npm
@@ -122,10 +122,10 @@ nginx -t
 systemctl restart nginx
 
 # --- 7. Configuração do Firewall ---
-print_info "Configurando o firewall (UFW)..."
-ufw allow 'Nginx Full'
-ufw allow 5000/tcp
-ufw status
+#print_info "Configurando o firewall (UFW)..."
+#ufw allow 'Nginx Full'
+#ufw allow 5000/tcp
+#ufw status
 
 # --- Finalização ---
 print_success "Instalação concluída com sucesso!"
