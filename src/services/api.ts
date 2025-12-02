@@ -72,6 +72,48 @@ class ApiService {
     });
   }
 
+  // SMTP configuration
+  async getSmtpConfig() {
+    return this.request('/config/smtp');
+  }
+
+  async saveSmtpConfig(config: {
+    host?: string;
+    port?: string;
+    username?: string;
+    password?: string;
+    useTls?: boolean;
+    useSsl?: boolean;
+    fromEmail?: string;
+  }) {
+    return this.request('/config/smtp', {
+      method: 'POST',
+      body: JSON.stringify(config),
+    });
+  }
+
+  async sendSmtpTest(toEmail: string) {
+    return this.request('/config/smtp/test', {
+      method: 'POST',
+      body: JSON.stringify({ toEmail }),
+    });
+  }
+
+  // Password recovery
+  async requestPasswordReset(email: string) {
+    return this.request('/auth/request-password-reset', {
+      method: 'POST',
+      body: JSON.stringify({ email }),
+    });
+  }
+
+  async resetPassword(token: string, newPassword: string) {
+    return this.request('/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ token, newPassword }),
+    });
+  }
+
   // Router configuration
   async getRouterConfig() {
     return this.request('/config/router');
