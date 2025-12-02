@@ -1,5 +1,5 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -13,8 +13,17 @@ const Login = () => {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
+  const { login, users } = useAuth();
   const navigate = useNavigate();
+
+  const showDefaultCreds = users.length === 1 && users[0]?.email === 'admin@example.com';
+
+  useEffect(() => {
+    if (users.length > 1 || (users.length === 1 && users[0]?.email !== 'admin@example.com')) {
+      setEmail('');
+      setPassword('');
+    }
+  }, [users]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -90,15 +99,25 @@ const Login = () => {
               <LogIn className="w-4 h-4 mr-2" />
               {loading ? 'Entrando...' : 'Entrar'}
             </Button>
+            <Button
+              type="button"
+              variant="link"
+              onClick={() => navigate('/forgot-password')}
+              className="w-full justify-center text-green-400"
+            >
+              Esqueci minha senha
+            </Button>
           </form>
           
-          <div className="mt-6 p-4 bg-gray-700/30 rounded-lg border border-gray-600">
-            <p className="text-xs text-gray-400 mb-2">Credenciais padrão:</p>
-            <p className="text-xs text-gray-300">
-              <strong>Email:</strong> admin@example.com<br/>
-              <strong>Senha:</strong> admin123
-            </p>
-          </div>
+          {showDefaultCreds && (
+            <div className="mt-6 p-4 bg-gray-700/30 rounded-lg border border-gray-600">
+              <p className="text-xs text-gray-400 mb-2">Credenciais padrão:</p>
+              <p className="text-xs text-gray-300">
+                <strong>Email:</strong> admin@example.com<br/>
+                <strong>Senha:</strong> admin123
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>

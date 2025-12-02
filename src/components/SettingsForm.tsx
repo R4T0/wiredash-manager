@@ -1,12 +1,13 @@
 import React from 'react';
 import { Card } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Settings, Router, Shield, Users, FileText, Activity } from 'lucide-react';
+import { Settings, Router, Shield, Users, FileText, Activity, Mail } from 'lucide-react';
 import ConnectionTab from './settings/ConnectionTab';
 import WireGuardTab from './settings/WireGuardTab';
 import UsersTab from './settings/UsersTab';
 import DiagnosticTab from './settings/DiagnosticTab';
 import PlaceholderTab from './settings/PlaceholderTab';
+import SmtpTab from './settings/SmtpTab';
 
 const SettingsForm = () => {
   return (
@@ -23,7 +24,7 @@ const SettingsForm = () => {
 
       <Card className="bg-gray-800/50 border-gray-700">
         <Tabs defaultValue="mikrotik" className="w-full">
-          <TabsList className="grid w-full grid-cols-5 bg-gray-700/50 border-gray-600">
+          <TabsList className="grid w-full grid-cols-6 bg-gray-700/50 border-gray-600">
             <TabsTrigger 
               value="mikrotik" 
               className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 data-[state=active]:border-green-500/30 data-[state=active]:shadow-md data-[state=active]:shadow-green-500/15 hover:bg-green-500/10"
@@ -59,6 +60,13 @@ const SettingsForm = () => {
               <Activity className="w-4 h-4 mr-2" />
               Diagnóstico
             </TabsTrigger>
+            <TabsTrigger 
+              value="smtp"
+              className="data-[state=active]:bg-green-500/20 data-[state=active]:text-green-400 data-[state=active]:border-green-500/30 data-[state=active]:shadow-md data-[state=active]:shadow-green-500/15 hover:bg-green-500/10"
+            >
+              <Mail className="w-4 h-4 mr-2" />
+              Email (SMTP)
+            </TabsTrigger>
           </TabsList>
 
           <TabsContent value="mikrotik">
@@ -83,6 +91,10 @@ const SettingsForm = () => {
 
           <TabsContent value="diagnostico">
             <DiagnosticTab />
+          </TabsContent>
+
+          <TabsContent value="smtp">
+            <SmtpTab />
           </TabsContent>
         </Tabs>
       </Card>

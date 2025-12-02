@@ -37,7 +37,7 @@ const Footer = () => {
         
         <div className="mt-4 pt-4 border-t border-gray-700">
           <p className="text-center text-xs text-gray-500">
-            WireDash v1.0.0 - Gerenciador WireGuard para Mikrotik, OPNsense, pfSense etc
+            WireDash v1.0.2 - Gerenciador WireGuard para Mikrotik, OPNsense, pfSense etc
           </p>
         </div>
       </div>
