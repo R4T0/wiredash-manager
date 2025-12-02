@@ -2,6 +2,38 @@
 
 Este script automatiza completamente a instalação do WireGuard Multi-Router Manager em sistemas baseados em Debian/Ubuntu.
 
+## Variáveis de Ambiente
+
+### APP_URL (Obrigatório para recuperação de senha)
+
+A variável `APP_URL` define a URL completa do sistema, usada para gerar links de recuperação de senha nos e-mails.
+
+**Configuração:**
+
+1. Crie um arquivo `.env` na raiz do projeto:
+```bash
+APP_URL=https://seu-dominio.com.br
+```
+
+2. Ou defina diretamente no docker-compose.yml:
+```yaml
+environment:
+  - APP_URL=https://seu-dominio.com.br
+```
+
+3. Ou exporte como variável de ambiente antes de executar:
+```bash
+export APP_URL=https://seu-dominio.com.br
+docker compose up -d
+```
+
+**Exemplos:**
+- Produção: `APP_URL=https://wiredash.minhaempresa.com.br`
+- Desenvolvimento local: `APP_URL=http://localhost:3000`
+- Com porta customizada: `APP_URL=http://192.168.1.100:3000`
+
+---
+
 ## Pré-requisitos
 
 - Sistema Debian/Ubuntu (testado em Ubuntu 20.04+, Debian 11+)
