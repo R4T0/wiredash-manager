@@ -91,16 +91,12 @@ class DatabaseManager:
             )
         ''')
         
-        # Insert default admin user if no users exist
-        cursor.execute('SELECT COUNT(*) FROM usuarios')
-        user_count = cursor.fetchone()[0]
-        
-        if user_count == 0:
-            admin_password = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            cursor.execute('''
-                INSERT OR IGNORE INTO usuarios (name, email, password, enabled, created_at)
-                VALUES (?, ?, ?, ?, ?)
-            ''', ('Admin User', 'admin@example.com', admin_password, 1, '2024-01-15'))
+        # Insert default admin user if none exists (INSERT OR IGNORE handles race conditions)
+        admin_password = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        cursor.execute('''
+            INSERT OR IGNORE INTO usuarios (name, email, password, enabled, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        ''', ('Admin User', 'admin@example.com', admin_password, 1, '2024-01-15'))
         
         conn.commit()
         conn.close()
