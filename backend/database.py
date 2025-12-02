@@ -98,7 +98,7 @@ class DatabaseManager:
         if user_count == 0:
             admin_password = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
             cursor.execute('''
-                INSERT INTO usuarios (name, email, password, enabled, created_at)
+                INSERT OR IGNORE INTO usuarios (name, email, password, enabled, created_at)
                 VALUES (?, ?, ?, ?, ?)
             ''', ('Admin User', 'admin@example.com', admin_password, 1, '2024-01-15'))
         
