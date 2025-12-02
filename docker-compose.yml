@@ -9,6 +9,7 @@ services:
       - "5000:5000"
     environment:
       - FLASK_ENV=production
+      - APP_URL=${APP_URL:-http://localhost:3000}
     networks:
       - wireguard-network
 
