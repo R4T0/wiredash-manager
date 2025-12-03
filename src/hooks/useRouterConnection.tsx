@@ -20,6 +20,12 @@ const routerTypes = [
 
 // Helper function to get the correct backend URL
 const getBackendUrl = () => {
+  // First, check for environment variable (set during build)
+  if (import.meta.env.VITE_API_URL) {
+    // Remove /api suffix if present to get base URL
+    return import.meta.env.VITE_API_URL.replace(/\/api$/, '');
+  }
+  
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:5000';
   }

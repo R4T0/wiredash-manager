@@ -2,6 +2,10 @@
 # Use Node.js 18 as base image
 FROM node:18-alpine AS builder
 
+# Build argument for API URL
+ARG VITE_API_URL=http://localhost:5000/api
+ENV VITE_API_URL=$VITE_API_URL
+
 # Set working directory
 WORKDIR /app
 
