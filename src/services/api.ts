@@ -1,6 +1,11 @@
 
-// Detect the current host and use it for API calls instead of hardcoded localhost
+// Get API base URL from environment variable or detect dynamically
 const getApiBaseUrl = () => {
+  // First, check for environment variable (set during build)
+  if (import.meta.env.VITE_API_URL) {
+    return import.meta.env.VITE_API_URL;
+  }
+  
   // If we're in development and accessing via localhost, use localhost for backend
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:5000/api';
