@@ -7,7 +7,9 @@ services:
       - FLASK_ENV=production
       - DB_PATH=/app/data/wireguard_manager.db
       - LOG_LEVEL=INFO
-      - APP_URL=${APP_URL:-http://localhost:3000}
+      - APP_URL=https://wiredash.example.com
+      - RESET_URL_BASE=https://wiredash.example.com
+      - CORS_ORIGINS=https://wiredash.example.com
     volumes:
       - wiredash-db:/app/data
       - wiredash-logs:/app/logs
