@@ -25,22 +25,15 @@ const getBackendUrl = () => {
     // Remove /api suffix if present to get base URL
     return import.meta.env.VITE_API_URL.replace(/\/api$/, '');
   }
-  
+
+  // Local development: backend is usually exposed on :5000
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:5000';
   }
-  
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  
-  // For production/Docker deployments, use relative path through nginx proxy
-  if (!port || port === '80' || port === '443') {
-    return `${protocol}//${hostname}`;
-  }
-  
-  // For other ports (like development on 5173), use port 5000 for backend
-  return `${protocol}//${hostname}:5000`;
+
+  // Docker/Swarm/Proxy deployments: use same-origin relative API.
+  // Returning empty string makes fetch("/api/...") resolve correctly no matter the host/port.
+  return '';
 };
 
 export const useRouterConnection = () => {
