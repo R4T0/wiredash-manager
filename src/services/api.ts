@@ -11,9 +11,18 @@ const getApiBaseUrl = () => {
     return 'http://localhost:5000/api';
   }
   
-  // For other hosts (IP access), use the same host but port 5000 for backend
+  // For production/Docker deployments, use relative path through nginx proxy
+  // This allows the frontend to work without knowing the backend's direct address
   const protocol = window.location.protocol;
   const hostname = window.location.hostname;
+  const port = window.location.port;
+  
+  // If accessing on standard ports (80/443) or no port, use relative /api path (nginx proxy)
+  if (!port || port === '80' || port === '443') {
+    return `${protocol}//${hostname}/api`;
+  }
+  
+  // For other ports (like development on 5173), use port 5000 for backend
   return `${protocol}//${hostname}:5000/api`;
 };
 
