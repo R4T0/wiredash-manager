@@ -1,29 +1,19 @@
 
 // Get API base URL from environment variable or detect dynamically
 const getApiBaseUrl = () => {
-  // First, check for environment variable (set during build)
+  // Build-time override (optional)
   if (import.meta.env.VITE_API_URL) {
     return import.meta.env.VITE_API_URL;
   }
-  
-  // If we're in development and accessing via localhost, use localhost for backend
+
+  // Local development: backend is usually exposed on :5000
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:5000/api';
   }
-  
-  // For production/Docker deployments, use relative path through nginx proxy
-  // This allows the frontend to work without knowing the backend's direct address
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  const port = window.location.port;
-  
-  // If accessing on standard ports (80/443) or no port, use relative /api path (nginx proxy)
-  if (!port || port === '80' || port === '443') {
-    return `${protocol}//${hostname}/api`;
-  }
-  
-  // For other ports (like development on 5173), use port 5000 for backend
-  return `${protocol}//${hostname}:5000/api`;
+
+  // Docker/Swarm/Proxy deployments: always use same-origin relative API.
+  // This avoids trying to hit ":5000" from the browser (which is typically not published in Swarm).
+  return '/api';
 };
 
 const API_BASE_URL = getApiBaseUrl();
