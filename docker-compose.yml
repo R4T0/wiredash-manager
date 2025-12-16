@@ -19,7 +19,9 @@ services:
     build:
       context: .
       args:
-        - VITE_API_URL=${VITE_API_URL:-http://localhost:5000/api}
+        # Default to same-origin /api (nginx proxy) for any Docker deployment.
+        # Override if needed: VITE_API_URL=http://SEU_HOST:5000/api
+        - VITE_API_URL=${VITE_API_URL:-/api}
     container_name: wireguard-frontend
     ports:
       - "3000:80"
