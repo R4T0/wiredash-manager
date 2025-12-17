@@ -9,11 +9,15 @@ services:
       - "5000:5000"
     environment:
       - FLASK_ENV=production
+      - DB_PATH=/app/data/wireguard_manager.db
       - APP_URL=https://wiredash.example.com
       - RESET_URL_BASE=https://wiredash.example.com
       - CORS_ORIGINS=https://wiredash.example.com
+    volumes:
+      - wiredash-db:/app/data
     networks:
       - wireguard-network
+
 
   frontend:
     build:
@@ -33,3 +37,8 @@ services:
 networks:
   wireguard-network:
     driver: bridge
+
+volumes:
+  wiredash-db:
+    driver: local
+

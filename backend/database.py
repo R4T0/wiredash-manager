@@ -7,9 +7,11 @@ import json
 from encryption import password_encryption
 
 class DatabaseManager:
-    def __init__(self, db_path='wireguard_manager.db'):
-        self.db_path = db_path
+    def __init__(self, db_path=None):
+        # Default DB path can be overridden with DB_PATH env var (used by Docker volume mounting)
+        self.db_path = db_path or os.getenv('DB_PATH', 'wireguard_manager.db')
         self.init_database()
+
     
     def get_connection(self):
         """Get database connection"""
