@@ -2,6 +2,48 @@
 
 Este script automatiza completamente a instalação do WireGuard Multi-Router Manager em sistemas baseados em Debian/Ubuntu.
 
+## Variáveis de Ambiente
+
+### APP_URL (Obrigatório para recuperação de senha)
+
+A variável `APP_URL` define a URL completa do sistema, usada para gerar links de recuperação de senha nos e-mails.
+
+### VITE_API_URL (Configuração do Frontend)
+
+A variável `VITE_API_URL` define a URL da API do backend que o frontend irá utilizar para comunicação. Se não definida, o frontend tentará conectar automaticamente no mesmo hostname na porta 5000.
+
+**Configuração:**
+
+1. Crie um arquivo `.env` na raiz do projeto:
+```bash
+APP_URL=https://seu-dominio.com.br
+VITE_API_URL=https://seu-dominio.com.br:5000/api
+```
+
+2. Ou defina diretamente no docker-compose.yml:
+```yaml
+environment:
+  - APP_URL=https://seu-dominio.com.br
+args:
+  - VITE_API_URL=https://seu-dominio.com.br:5000/api
+```
+
+3. Ou exporte como variável de ambiente antes de executar:
+```bash
+export APP_URL=https://seu-dominio.com.br
+export VITE_API_URL=https://seu-dominio.com.br:5000/api
+docker compose up -d --build
+```
+
+**Exemplos:**
+- Produção: `APP_URL=https://wiredash.minhaempresa.com.br`
+- Produção API: `VITE_API_URL=https://wiredash.minhaempresa.com.br:5000/api`
+- Desenvolvimento local: `APP_URL=http://localhost:3000`
+- Desenvolvimento API: `VITE_API_URL=http://localhost:5000/api`
+- Com IP customizado: `VITE_API_URL=http://192.168.1.100:5000/api`
+
+---
+
 ## Pré-requisitos
 
 - Sistema Debian/Ubuntu (testado em Ubuntu 20.04+, Debian 11+)

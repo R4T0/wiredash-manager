@@ -7,6 +7,9 @@ services:
       - FLASK_ENV=production
       - DB_PATH=/app/data/wireguard_manager.db
       - LOG_LEVEL=INFO
+      - APP_URL=https://wiredash.example.com
+      - RESET_URL_BASE=https://wiredash.example.com
+      - CORS_ORIGINS=https://wiredash.example.com
     volumes:
       - wiredash-db:/app/data
       - wiredash-logs:/app/logs
@@ -21,6 +24,14 @@ services:
         limits:
           memory: 512M
           cpus: '0.5'
+      labels:
+        # Route /api/* to the backend service (so the frontend can call same-origin /api)
+        - "traefik.enable=true"
+        - "traefik.http.routers.wiredash-api.rule=Host(`wiredash.example.com`) && PathPrefix(`/api`)"
+        - "traefik.http.routers.wiredash-api.entrypoints=websecure"
+        - "traefik.http.routers.wiredash-api.tls=true"
+        - "traefik.http.routers.wiredash-api.priority=100"
+        - "traefik.http.services.wiredash-api.loadbalancer.server.port=5000"
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
       interval: 30s
@@ -44,6 +55,13 @@ services:
         limits:
           memory: 512M
           cpus: '0.5'
+      labels:
+        # Route the main site to the frontend service
+        - "traefik.enable=true"
+        - "traefik.http.routers.wiredash.rule=Host(`wiredash.example.com`)"
+        - "traefik.http.routers.wiredash.entrypoints=websecure"
+        - "traefik.http.routers.wiredash.tls=true"
+        - "traefik.http.services.wiredash.loadbalancer.server.port=80"
 
 networks:
   traefik_public:

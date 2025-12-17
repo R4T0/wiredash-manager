@@ -55,8 +55,8 @@ def request_password_reset():
         smtp = db.get_smtp_config()
         if not smtp:
             return jsonify({'success': False, 'error': 'SMTP não configurado'}), 500
-        reset_url_base = os.environ.get('RESET_URL_BASE', '')
-        reset_link = f"{reset_url_base}/reset-password?token={token}" if reset_url_base else f"/reset-password?token={token}"
+        app_url = os.environ.get('APP_URL', '').rstrip('/')
+        reset_link = f"{app_url}/reset-password?token={token}" if app_url else f"/reset-password?token={token}"
         send_reset_email(smtp, email, reset_link)
         return jsonify({'success': True})
     except Exception as e:

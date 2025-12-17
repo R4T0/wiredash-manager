@@ -2,6 +2,10 @@
 # Use Node.js 18 as base image
 FROM node:18-alpine AS builder
 
+# Build argument for API URL - use relative path for Docker deployments (nginx proxy)
+ARG VITE_API_URL=/api
+ENV VITE_API_URL=$VITE_API_URL
+
 # Set working directory
 WORKDIR /app
 

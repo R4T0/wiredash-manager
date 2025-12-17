@@ -9,11 +9,23 @@ services:
       - "5000:5000"
     environment:
       - FLASK_ENV=production
+      - DB_PATH=/app/data/wireguard_manager.db
+      - APP_URL=https://wiredash.example.com
+      - RESET_URL_BASE=https://wiredash.example.com
+      - CORS_ORIGINS=https://wiredash.example.com
+    volumes:
+      - wiredash-db:/app/data
     networks:
       - wireguard-network
 
+
   frontend:
-    build: .
+    build:
+      context: .
+      args:
+        # Default to same-origin /api (nginx proxy) for any Docker deployment.
+        # Override if needed: VITE_API_URL=http://SEU_HOST:5000/api
+        - VITE_API_URL=${VITE_API_URL:-/api}
     container_name: wireguard-frontend
     ports:
       - "3000:80"
@@ -25,3 +37,8 @@ services:
 networks:
   wireguard-network:
     driver: bridge
+
+volumes:
+  wiredash-db:
+    driver: local
+

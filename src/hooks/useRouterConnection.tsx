@@ -20,13 +20,20 @@ const routerTypes = [
 
 // Helper function to get the correct backend URL
 const getBackendUrl = () => {
+  // First, check for environment variable (set during build)
+  if (import.meta.env.VITE_API_URL) {
+    // Remove /api suffix if present to get base URL
+    return import.meta.env.VITE_API_URL.replace(/\/api$/, '');
+  }
+
+  // Local development: backend is usually exposed on :5000
   if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
     return 'http://localhost:5000';
   }
-  
-  const protocol = window.location.protocol;
-  const hostname = window.location.hostname;
-  return `${protocol}//${hostname}:5000`;
+
+  // Docker/Swarm/Proxy deployments: use same-origin relative API.
+  // Returning empty string makes fetch("/api/...") resolve correctly no matter the host/port.
+  return '';
 };
 
 export const useRouterConnection = () => {

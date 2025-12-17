@@ -7,9 +7,11 @@ import json
 from encryption import password_encryption
 
 class DatabaseManager:
-    def __init__(self, db_path='wireguard_manager.db'):
-        self.db_path = db_path
+    def __init__(self, db_path=None):
+        # Default DB path can be overridden with DB_PATH env var (used by Docker volume mounting)
+        self.db_path = db_path or os.getenv('DB_PATH', 'wireguard_manager.db')
         self.init_database()
+
     
     def get_connection(self):
         """Get database connection"""
@@ -91,16 +93,12 @@ class DatabaseManager:
             )
         ''')
         
-        # Insert default admin user if no users exist
-        cursor.execute('SELECT COUNT(*) FROM usuarios')
-        user_count = cursor.fetchone()[0]
-        
-        if user_count == 0:
-            admin_password = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
-            cursor.execute('''
-                INSERT INTO usuarios (name, email, password, enabled, created_at)
-                VALUES (?, ?, ?, ?, ?)
-            ''', ('Admin User', 'admin@example.com', admin_password, 1, '2024-01-15'))
+        # Insert default admin user if none exists (INSERT OR IGNORE handles race conditions)
+        admin_password = bcrypt.hashpw('admin123'.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
+        cursor.execute('''
+            INSERT OR IGNORE INTO usuarios (name, email, password, enabled, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        ''', ('Admin User', 'admin@example.com', admin_password, 1, '2024-01-15'))
         
         conn.commit()
         conn.close()
