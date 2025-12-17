@@ -8,6 +8,15 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Plus } from 'lucide-react';
 import { apiService } from '@/services/api';
 
+// Helper function to get the correct backend URL
+const getBackendUrl = () => {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:5000';
+  }
+  // In Docker/production, use same-origin /api (nginx proxy)
+  return '';
+};
+
 interface CreatePeerModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -165,7 +174,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
   const fetchExistingPeers = async () => {
     if (routerConfig.routerType !== 'mikrotik') return;
 
-    const proxyUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/router/proxy`;
+    const proxyUrl = `${getBackendUrl()}/api/router/proxy`;
 
     const requestBody = {
       routerType: routerConfig.routerType,
@@ -255,7 +264,7 @@ const CreatePeerModal: React.FC<CreatePeerModalProps> = ({
     if (routerConfig.routerType !== 'mikrotik') return;
 
     setIsLoadingInterfaces(true);
-    const proxyUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/router/proxy`;
+    const proxyUrl = `${getBackendUrl()}/api/router/proxy`;
 
     const requestBody = {
       routerType: routerConfig.routerType,

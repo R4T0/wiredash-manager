@@ -12,6 +12,15 @@ import { useWireguardPeers } from '@/hooks/useWireguardPeers';
 import { apiService } from '@/services/api';
 import QRCode from 'qrcode';
 
+// Helper function to get the correct backend URL
+const getBackendUrl = () => {
+  if (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') {
+    return 'http://localhost:5000';
+  }
+  // In Docker/production, use same-origin /api (nginx proxy)
+  return '';
+};
+
 interface PeerFormData {
   selectedPeer: string;
   interface: string;
@@ -98,7 +107,7 @@ const PeerForm = () => {
           if (!savedConfig) return;
 
           const config = JSON.parse(savedConfig);
-          const proxyUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/router/proxy`;
+          const proxyUrl = `${getBackendUrl()}/api/router/proxy`;
 
           const requestBody = {
             routerType: config.routerType,
@@ -199,7 +208,7 @@ const PeerForm = () => {
         config = JSON.parse(savedConfig);
       }
 
-      const proxyUrl = `${window.location.protocol}//${window.location.hostname}:5000/api/router/proxy`;
+      const proxyUrl = `${getBackendUrl()}/api/router/proxy`;
 
       const requestBody = {
         routerType: config.routerType,
