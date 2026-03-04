@@ -103,7 +103,7 @@ const QRCodeModal = ({ isOpen, onClose, peer }: QRCodeModalProps) => {
     const config = `[Interface]
 PrivateKey = ${clientPrivateKey}
 Address = ${peerData['allowed-address'] || '10.0.0.10/32'}
-DNS = 1.1.1.1
+DNS = ${peerData['client-dns'] || '1.1.1.1'}
 
 [Peer]
 PublicKey = ${interfacePublicKey}
