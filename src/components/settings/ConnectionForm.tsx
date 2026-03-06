@@ -62,7 +62,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
 
         <div className="space-y-2">
           <Label htmlFor="port" className="text-gray-300">
-            Porta API
+            Porta API (HTTP/HTTPS)
           </Label>
           <Input
             id="port"
@@ -70,7 +70,7 @@ const ConnectionForm: React.FC<ConnectionFormProps> = ({
             type="text"
             value={formData.port}
             onChange={onInputChange}
-            placeholder="Para 80 ou 443 deixe em branco"
+            placeholder="Padrão: 80 (HTTP) ou 443 (HTTPS)"
             className="bg-gray-700/50 border-gray-600 text-white placeholder-gray-400 focus:border-blue-500"
           />
         </div>

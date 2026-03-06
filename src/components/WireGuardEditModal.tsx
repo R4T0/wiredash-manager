@@ -213,7 +213,7 @@ const WireGuardEditModal = ({ isOpen, onClose, onSuccess, interface: iface }: Wi
             type="button"
             onClick={handleUpdate}
             disabled={isUpdating}
-            className="bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700"
+            className="bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white shadow-lg"
           >
             {isUpdating ? (
               <>

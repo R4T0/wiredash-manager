@@ -2,9 +2,18 @@
 import requests
 import base64
 import json
+import os
 from datetime import datetime
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 import logging
 from abc import ABC, abstractmethod
+import urllib3
+
+# Suppress InsecureRequestWarning
+urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
 logger = logging.getLogger(__name__)
 
@@ -12,7 +21,8 @@ class BaseRouter(ABC):
     """Classe base para todos os tipos de roteadores"""
     
     def __init__(self, endpoint, port, user, password, use_https=False):
-        self.endpoint = endpoint
+        # Remove protocol if present in endpoint
+        self.endpoint = endpoint.replace('http://', '').replace('https://', '').rstrip('/')
         self.port = port
         self.user = user
         self.password = password
@@ -21,7 +31,7 @@ class BaseRouter(ABC):
         # Construir URL base
         protocol = 'https' if use_https else 'http'
         port_suffix = f':{port}' if port else ''
-        self.base_url = f'{protocol}://{endpoint}{port_suffix}'
+        self.base_url = f'{protocol}://{self.endpoint}{port_suffix}'
         
         logger.info(f'Router initialized with base URL: {self.base_url} (HTTPS: {use_https})')
     
@@ -43,8 +53,13 @@ class BaseRouter(ABC):
             
             start_time = datetime.now()
             
-            # Configurar verificação SSL baseada no protocolo
-            verify_ssl = self.use_https
+            # Configure SSL verification based on environment
+            verify_ssl_env = os.getenv('VERIFY_SSL')
+            if verify_ssl_env is not None:
+                verify_ssl = verify_ssl_env.lower() == 'true'
+            else:
+                # Default to secure verification in production, allow self-signed in development
+                verify_ssl = os.getenv('FLASK_ENV') != 'development'
             
             # Fazer requisição baseada no método
             if method.upper() == 'GET':
@@ -91,13 +106,23 @@ class BaseRouter(ABC):
             logger.error('Timeout na requisição')
             return {
                 'success': False,
-                'error': 'Timeout na conexão com o roteador',
+                'error': 'Timeout na conexão com o roteador. Verifique o IP e a porta.',
                 'code': 'TIMEOUT',
                 'router_type': self.get_router_type()
             }
             
-        except requests.exceptions.ConnectionError:
-            logger.error('Erro de conexão')
+        except requests.exceptions.SSLError as e:
+            logger.error(f'Erro de SSL: {str(e)}')
+            return {
+                'success': False,
+                'error': f'Erro de certificado SSL: {str(e)}',
+                'code': 'SSL_ERROR',
+                'router_type': self.get_router_type()
+            }
+            
+        except requests.exceptions.ConnectionError as e:
+            logger.error(f'Erro de conexão: {str(e)}')
+
             return {
                 'success': False,
                 'error': 'Não foi possível conectar ao roteador',

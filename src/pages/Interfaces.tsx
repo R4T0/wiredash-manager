@@ -191,10 +191,6 @@ const Interfaces = () => {
     const willDisable = currentDisabled === 'false';
     const action = willDisable ? 'desabilitar' : 'habilitar';
     
-    if (!confirm(`Tem certeza que deseja ${action} a interface ${interfaceName}?`)) {
-      return;
-    }
-
     setTogglingId(interfaceId);
 
     try {

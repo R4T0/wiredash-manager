@@ -25,7 +25,7 @@ interface PeerFormData {
   selectedPeer: string;
   interface: string;
   endpoint: string;
-  endpointPort: number;
+  endpointPort: string;
   allowedAddress: string;
   clientDns: string;
   clientEndpoint: string;
@@ -41,10 +41,10 @@ const PeerForm = () => {
     selectedPeer: '',
     interface: '',
     endpoint: '',
-    endpointPort: 51820,
+    endpointPort: '',
     allowedAddress: '',
-    clientDns: '1.1.1.1',
-    clientEndpoint: '0.0.0.0'
+    clientDns: '',
+    clientEndpoint: ''
   });
 
   const [interfaces, setInterfaces] = useState([
@@ -155,8 +155,9 @@ const PeerForm = () => {
         interface: selectedPeerData.interface || '',
         allowedAddress: selectedPeerData['allowed-address'] || '',
         endpoint: wireguardGlobalConfig.endpointPadrao || selectedPeerData['endpoint-address'] || '',
-        endpointPort: interfaceData?.['listen-port'] || parseInt(wireguardGlobalConfig.portaPadrao) || selectedPeerData['endpoint-port'] || 51820,
-        clientDns: wireguardGlobalConfig.dnsCliente || '1.1.1.1'
+        endpointPort: '',
+        clientDns: '',
+        clientEndpoint: ''
       }));
     }
   }, [selectedPeerData, wireguardGlobalConfig, interfaceData]);
@@ -271,14 +272,22 @@ const PeerForm = () => {
     // Get the public key from the WireGuard interface, not from the peer
     const interfacePublicKey = await getInterfacePublicKey(selectedPeerData.interface);
     
+    const dnsValue = formData.clientDns || wireguardGlobalConfig.dnsCliente || '1.1.1.1';
+    const portValue =
+      formData.endpointPort ||
+      String(interfaceData?.['listen-port'] || '') ||
+      wireguardGlobalConfig.portaPadrao ||
+      String(selectedPeerData['endpoint-port'] || '') ||
+      '51820';
+
     const config = `[Interface]
 PrivateKey = ${clientPrivateKey}
 Address = ${formData.allowedAddress}
-DNS = ${formData.clientDns}
+DNS = ${dnsValue}
 
 [Peer]
 PublicKey = ${interfacePublicKey}
-Endpoint = ${formData.endpoint}:${formData.endpointPort}
+Endpoint = ${formData.endpoint}:${portValue}
 AllowedIPs = 0.0.0.0/0
 PersistentKeepalive = 25`;
 
@@ -423,13 +432,14 @@ PersistentKeepalive = 25`;
                         </div>
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-full p-0 bg-gray-800 border-gray-700 shadow-xl">
-                      <Command className="bg-gray-800">
+                    <PopoverContent align="start" className="w-[--radix-popover-trigger-width] p-0 bg-gray-800 border-gray-700 shadow-xl">
+                      <Command shouldFilter={false} className="bg-gray-800">
                         <CommandInput 
                           placeholder="Buscar por nome do peer..." 
                           className="text-white h-11"
                           value={searchValue}
                           onValueChange={setSearchValue}
+                          autoFocus
                         />
                         <CommandList className="max-h-60">
                           <CommandEmpty className="text-gray-400 p-4">Nenhum peer encontrado.</CommandEmpty>
@@ -442,7 +452,7 @@ PersistentKeepalive = 25`;
                               return (
                                 <CommandItem
                                   key={peerId}
-                                  value={peerId}
+                                  value={peerName}
                                   onSelect={() => handlePeerSelect(peerId)}
                                   className="text-white hover:bg-gray-700 cursor-pointer p-3"
                                 >
@@ -499,17 +509,18 @@ PersistentKeepalive = 25`;
                         value={formData.endpoint}
                         onChange={(e) => handleInputChange('endpoint', e.target.value)}
                         placeholder={wireguardGlobalConfig.endpointPadrao || "vpn.wiredash.com"}
-                        className="bg-gray-800 border-gray-600 text-white h-10 mt-2"
+                        className="bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-green-500 h-10 mt-2"
                       />
                     </div>
                     <div>
                       <Label htmlFor="port" className="text-white">Porta</Label>
                       <Input
                         id="port"
-                        type="number"
+                        type="text"
                         value={formData.endpointPort}
-                        onChange={(e) => handleInputChange('endpointPort', parseInt(e.target.value) || 51820)}
-                        className="bg-gray-800 border-gray-600 text-white h-10 mt-2"
+                        onChange={(e) => handleInputChange('endpointPort', e.target.value)}
+                        placeholder={String(interfaceData?.['listen-port'] || wireguardGlobalConfig.portaPadrao || selectedPeerData?.['endpoint-port'] || 51820)}
+                        className="bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-green-500 h-10 mt-2"
                       />
                     </div>
                   </div>
@@ -525,7 +536,7 @@ PersistentKeepalive = 25`;
                         value={formData.clientDns}
                         onChange={(e) => handleInputChange('clientDns', e.target.value)}
                         placeholder={wireguardGlobalConfig.dnsCliente || "1.1.1.1, 8.8.8.8"}
-                        className="bg-gray-800 border-gray-600 text-white h-10 mt-2"
+                        className="bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-green-500 h-10 mt-2"
                       />
                     </div>
                     <div>
@@ -534,7 +545,8 @@ PersistentKeepalive = 25`;
                         id="clientEndpoint"
                         value={formData.clientEndpoint}
                         onChange={(e) => handleInputChange('clientEndpoint', e.target.value)}
-                        className="bg-gray-800 border-gray-600 text-white h-10 mt-2"
+                        placeholder="0.0.0.0"
+                        className="bg-gray-800 border-gray-600 text-white placeholder-gray-400 focus:border-green-500 h-10 mt-2"
                       />
                     </div>
                   </div>
@@ -542,7 +554,7 @@ PersistentKeepalive = 25`;
 
                 <Button 
                   type="submit" 
-                  className="w-full h-12 bg-gradient-to-r from-blue-600 to-green-600 hover:from-blue-700 hover:to-green-700 text-white font-semibold shadow-lg transform hover:scale-[1.01] transition-all duration-200"
+                  className="w-full h-12 bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 text-white font-semibold shadow-lg transform hover:scale-[1.01] transition-all duration-200"
                   disabled={!formData.selectedPeer}
                 >
                   <Plus className="w-4 h-4 mr-2" />

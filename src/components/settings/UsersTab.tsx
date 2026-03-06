@@ -4,9 +4,8 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { Plus, Users, Edit, Trash2, UserX } from 'lucide-react';
+import { Plus, Edit, Trash2, UserX } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useToast } from '@/hooks/use-toast';
 import EditUserModal from './EditUserModal';
@@ -206,69 +205,55 @@ const UsersTab = () => {
         </Dialog>
       </div>
 
-      <Card className="bg-gray-800/50 border-gray-700">
-        <CardHeader>
-          <CardTitle className="text-white flex items-center">
-            <Users className="w-5 h-5 mr-2" />
-            Usuários Cadastrados ({users.length})
-          </CardTitle>
-          <CardDescription className="text-gray-400">
-            Lista de todos os usuários do sistema
-          </CardDescription>
-        </CardHeader>
-        
-        <CardContent>
-          <div className="space-y-3">
-            {users.map((user) => (
-              <div
-                key={user.id}
-                className={`flex items-center justify-between p-4 rounded-lg border ${
-                  user.enabled 
-                    ? 'bg-gray-700/30 border-gray-600' 
-                    : 'bg-red-900/20 border-red-800'
-                }`}
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center space-x-2">
-                    <h3 className="font-medium text-white">{user.name}</h3>
-                    {!user.enabled && (
-                      <UserX className="w-4 h-4 text-red-400" />
-                    )}
-                  </div>
-                  <p className="text-sm text-gray-400">{user.email}</p>
-                  <p className="text-xs text-gray-500">Cadastrado em: {user.created_at}</p>
-                  <p className={`text-xs ${user.enabled ? 'text-green-400' : 'text-red-400'}`}>
-                    Status: {user.enabled ? 'Ativo' : 'Desativado'}
-                  </p>
-                </div>
-                
-                <div className="flex items-center space-x-2">
-                  <Switch
-                    checked={user.enabled}
-                    onCheckedChange={(checked) => handleToggleUser(user.id, checked)}
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleEditUser(user)}
-                    className="border-gray-600 text-gray-300 hover:bg-gray-700"
-                  >
-                    <Edit className="w-4 h-4" />
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => handleDeleteUser(user.id)}
-                    className="border-red-600 text-red-400 hover:bg-red-900/20"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
-                </div>
+      <div className="space-y-3">
+        {users.map((user) => (
+          <div
+            key={user.id}
+            className={`flex items-center justify-between p-4 rounded-lg border ${
+              user.enabled 
+                ? 'bg-gray-700/30 border-gray-600' 
+                : 'bg-red-900/20 border-red-800'
+            }`}
+          >
+            <div className="space-y-1">
+              <div className="flex items-center space-x-2">
+                <h3 className="font-medium text-white">{user.name}</h3>
+                {!user.enabled && (
+                  <UserX className="w-4 h-4 text-red-400" />
+                )}
               </div>
-            ))}
+              <p className="text-sm text-gray-400">{user.email}</p>
+              <p className="text-xs text-gray-500">Cadastrado em: {user.created_at}</p>
+              <p className={`text-xs ${user.enabled ? 'text-green-400' : 'text-red-400'}`}>
+                Status: {user.enabled ? 'Ativo' : 'Desativado'}
+              </p>
+            </div>
+            
+            <div className="flex items-center space-x-2">
+              <Switch
+                checked={user.enabled}
+                onCheckedChange={(checked) => handleToggleUser(user.id, checked)}
+              />
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleEditUser(user)}
+                className="border-gray-600 text-gray-300 hover:bg-gray-700"
+              >
+                <Edit className="w-4 h-4" />
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => handleDeleteUser(user.id)}
+                className="border-red-600 text-red-400 hover:bg-red-900/20"
+              >
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            </div>
           </div>
-        </CardContent>
-      </Card>
+        ))}
+      </div>
 
       <EditUserModal
         user={editingUser}
