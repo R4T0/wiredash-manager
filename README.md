@@ -2,7 +2,7 @@
 Este projeto está sob a licença GPLv3. Veja o arquivo LICENCES.MD para mais detalhes.
 
 ## Visão Geral
-O WireGuard Multi-Router Manager é uma aplicação web completa para gerenciar conexões WireGuard em múltiplos tipos de roteadores (Mikrotik, OPNsense, pfSense, Unifi).
+O WireDash Manager é uma aplicação web completa para gerenciar conexões WireGuard em múltiplos tipos de roteadores (Mikrotik, OPNsense, pfSense, Unifi).
 
 ### Componentes do Sistema:
 - **Frontend**: React + TypeScript + Vite (porta 3000/80)
